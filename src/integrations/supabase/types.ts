@@ -14,16 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          is_demo: boolean
+          role: Database["public"]["Enums"]["app_role"]
+          school_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          is_demo?: boolean
+          role?: Database["public"]["Enums"]["app_role"]
+          school_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          is_demo?: boolean
+          role?: Database["public"]["Enums"]["app_role"]
+          school_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_my_role: {
+        Args: never
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_my_school_id: { Args: never; Returns: string }
     }
     Enums: {
-      [_ in never]: never
+      app_role:
+        | "superadmin"
+        | "admin"
+        | "principal"
+        | "counselor"
+        | "coordinator"
+        | "teacher"
+        | "parent"
+        | "student"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +191,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: [
+        "superadmin",
+        "admin",
+        "principal",
+        "counselor",
+        "coordinator",
+        "teacher",
+        "parent",
+        "student",
+      ],
+    },
   },
 } as const
