@@ -77,14 +77,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Vedaalay — School OS" },
+      { name: "description", content: "Vedaalay School OS: manage admissions, attendance, homework, gradebook, fees, and parent communication in one place." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Vedaalay — School OS" },
+      { property: "og:description", content: "Vedaalay School OS: manage admissions, attendance, homework, gradebook, fees, and parent communication in one place." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Vedaalay — School OS" },
+      { name: "twitter:description", content: "Vedaalay School OS: manage admissions, attendance, homework, gradebook, fees, and parent communication in one place." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/5o1mycgVSodXpfQ7Fcp9a6EmWuN2/social-images/social-1784826591174-1000108493.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/5o1mycgVSodXpfQ7Fcp9a6EmWuN2/social-images/social-1784826591174-1000108493.webp" },
     ],
     links: [
       {
