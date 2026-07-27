@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   School, Search, Bell, ChevronDown, Phone, Calendar, Users, TrendingUp,
   Plus, X, MapPin, Mail, Clock, CheckCircle2, ArrowRight, LayoutGrid,
@@ -14,7 +14,7 @@ import {
   Monitor, Microscope, Utensils, Quote, Building, BedDouble, Route as RouteIcon, Image as ImageIcon,
   Paperclip, Smartphone, Loader2, Landmark, Share2, QrCode, Printer, IdCard, Download, Sparkles
 } from "lucide-react";
-import DataImportSection from "./DataImportSection";
+import { supabase, fetchProfile } from "../lib/supabaseClient";
 
 /* ---------------------------------------------------------
    DEMO DATA
@@ -494,6 +494,9 @@ const FAMILY_ROLES = ROLES.filter((r) => r.id === "parent" || r.id === "student"
 const STAFF_ROLES = ROLES.filter((r) => ["counselor", "coordinator", "teacher", "principal", "admin"].includes(r.id));
 // Super Admin is not scoped to a school and isn't part of either picker above
 const SUPERADMIN_ROLE = ROLES.find((r) => r.id === "superadmin");
+// Used to reconstruct a full role object (with its icon) from just the role id
+// stored in the `profiles` table after a real Supabase login.
+const ROLE_BY_ID = Object.fromEntries(ROLES.map((r) => [r.id, r]));
 // Used for AppShell branding when Super Admin is signed in (no single school context)
 const PLATFORM_BRAND = { id: "__platform__", name: "Vedaalay", city: "Platform Admin", color: "#4F46E5", colorSoft: "#EEF2FF", logo: "VA" };
 
@@ -1760,6 +1763,34 @@ function SchoolPickerScreen({ schools, title, subtitle, onPick, onBack }) {
 }
 
 function SuperAdminLoginScreen({ onBack, onLogin }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit() {
+    setError("");
+    if (!email.trim() || !password) {
+      setError("Enter your email and password.");
+      return;
+    }
+    setLoading(true);
+    const { data, error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    if (authError || !data.user) {
+      setLoading(false);
+      setError("Incorrect email or password.");
+      return;
+    }
+    const profile = await fetchProfile(data.user.id);
+    setLoading(false);
+    if (!profile || profile.role !== "superadmin") {
+      await supabase.auth.signOut();
+      setError("This account doesn't have Super Admin access.");
+      return;
+    }
+    onLogin();
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-800 flex flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-md">
@@ -1772,10 +1803,18 @@ function SuperAdminLoginScreen({ onBack, onLogin }) {
           </div>
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Super Admin login</h2>
         </div>
+        {error && (
+          <div className="mb-4 flex items-center gap-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 px-3.5 py-2.5 text-[13px] text-rose-700 dark:text-rose-300">
+            <AlertCircle size={15} className="shrink-0" /> {error}
+          </div>
+        )}
         <div className="space-y-3">
           <div>
             <label className="text-[13px] font-medium text-slate-600 dark:text-slate-300 mb-1 block">Email</label>
             <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
               placeholder="you@vedaalay.com"
               className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3.5 py-2.5 text-[14px] outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50"
             />
@@ -1784,17 +1823,20 @@ function SuperAdminLoginScreen({ onBack, onLogin }) {
             <label className="text-[13px] font-medium text-slate-600 dark:text-slate-300 mb-1 block">Password</label>
             <input
               type="password"
-              defaultValue="demo1234"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
               className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3.5 py-2.5 text-[14px] outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50"
             />
           </div>
           <button
-            onClick={onLogin}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg py-2.5 font-medium text-[14px] transition-colors mt-2"
+            onClick={handleSubmit}
+            disabled={loading}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-lg py-2.5 font-medium text-[14px] transition-colors mt-2 flex items-center justify-center gap-2"
           >
-            Continue
+            {loading && <Loader2 size={15} className="animate-spin" />}
+            {loading ? "Signing in..." : "Continue"}
           </button>
-          <p className="text-center text-slate-400 dark:text-slate-500 text-[12px] pt-1">Prototype login &middot; any credentials work</p>
         </div>
       </div>
     </div>
@@ -1804,7 +1846,39 @@ function SuperAdminLoginScreen({ onBack, onLogin }) {
 function RoleLogin({ school, roles, onLogin, onBack }) {
   const [role, setRole] = useState(null);
   const [step, setStep] = useState("pick"); // pick -> credentials
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const roleOptions = roles || ROLES;
+
+  async function handleSubmit() {
+    setError("");
+    if (!email.trim() || !password) {
+      setError("Enter your email and password.");
+      return;
+    }
+    setLoading(true);
+    const { data, error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    if (authError || !data.user) {
+      setLoading(false);
+      setError("Incorrect email or password.");
+      return;
+    }
+    const profile = await fetchProfile(data.user.id);
+    setLoading(false);
+    if (!profile || profile.role !== role.id) {
+      await supabase.auth.signOut();
+      setError(`This account doesn't have ${role.label} access.`);
+      return;
+    }
+    if (profile.school_id !== school.id) {
+      await supabase.auth.signOut();
+      setError(`This account isn't linked to ${school.name}.`);
+      return;
+    }
+    onLogin(ROLE_BY_ID[profile.role] || role);
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-800 flex flex-col items-center justify-center px-6 py-12">
@@ -1831,7 +1905,7 @@ function RoleLogin({ school, roles, onLogin, onBack }) {
                 return (
                   <button
                     key={r.id}
-                    onClick={() => { setRole(r); setStep("credentials"); }}
+                    onClick={() => { setRole(r); setStep("credentials"); setError(""); }}
                     className="w-full flex items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 hover:border-slate-300 hover:shadow-sm transition-all text-left"
                   >
                     <div className="w-9 h-9 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 shrink-0">
@@ -1851,7 +1925,7 @@ function RoleLogin({ school, roles, onLogin, onBack }) {
 
         {step === "credentials" && role && (
           <div>
-            <button onClick={() => setStep("pick")} className="flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-slate-700 text-[13px] mb-5">
+            <button onClick={() => { setStep("pick"); setError(""); }} className="flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-slate-700 text-[13px] mb-5">
               <ChevronLeft size={15} /> Choose a different role
             </button>
             <div className="flex items-center gap-2.5 mb-6">
@@ -1861,11 +1935,19 @@ function RoleLogin({ school, roles, onLogin, onBack }) {
               <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{role.label} login</h2>
             </div>
 
+            {error && (
+              <div className="mb-4 flex items-center gap-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 px-3.5 py-2.5 text-[13px] text-rose-700 dark:text-rose-300">
+                <AlertCircle size={15} className="shrink-0" /> {error}
+              </div>
+            )}
+
             <div className="space-y-3">
               <div>
-                <label className="text-[13px] font-medium text-slate-600 dark:text-slate-300 mb-1 block">Email or phone</label>
+                <label className="text-[13px] font-medium text-slate-600 dark:text-slate-300 mb-1 block">Email</label>
                 <input
-                  defaultValue={role.id === "counselor" ? "priya.sharma@greenvalley.edu" : ""}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
                   placeholder="you@school.edu"
                   className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3.5 py-2.5 text-[14px] outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50"
                 />
@@ -1874,17 +1956,20 @@ function RoleLogin({ school, roles, onLogin, onBack }) {
                 <label className="text-[13px] font-medium text-slate-600 dark:text-slate-300 mb-1 block">Password</label>
                 <input
                   type="password"
-                  defaultValue="demo1234"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
                   className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3.5 py-2.5 text-[14px] outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50"
                 />
               </div>
               <button
-                onClick={() => onLogin(role)}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg py-2.5 font-medium text-[14px] transition-colors mt-2"
+                onClick={handleSubmit}
+                disabled={loading}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-lg py-2.5 font-medium text-[14px] transition-colors mt-2 flex items-center justify-center gap-2"
               >
-                Continue
+                {loading && <Loader2 size={15} className="animate-spin" />}
+                {loading ? "Signing in..." : "Continue"}
               </button>
-              <p className="text-center text-slate-400 dark:text-slate-500 text-[12px] pt-1">Prototype login &middot; any credentials work</p>
             </div>
           </div>
         )}
@@ -5082,8 +5167,7 @@ function BillingScreen({ schools, schoolPlans, invoices, onGenerateInvoice, onMa
   );
 }
 
-function SchoolDetailDrawer({ school, plan, invoices, importState, onClose, onActivateSchool, onUpdateBranding, onGenerateInvoice, onMarkInvoicePaid, onConfirmImport }) {
-  const [tab, setTab] = useState("overview");
+function SchoolDetailDrawer({ school, plan, invoices, onClose, onActivateSchool, onUpdateBranding, onGenerateInvoice, onMarkInvoicePaid }) {
   if (!school) return null;
   const isPending = school.agreementStatus === "pending";
   const cap = PLAN_STUDENT_CAP[plan.plan] || Infinity;
@@ -5096,32 +5180,12 @@ function SchoolDetailDrawer({ school, plan, invoices, importState, onClose, onAc
     <div className="fixed inset-0 z-40 flex justify-end">
       <div className="absolute inset-0 bg-slate-900/30" onClick={onClose} />
       <div className="relative w-full max-w-md bg-white dark:bg-slate-900 h-full overflow-y-auto shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-900 z-10">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-900">
           <span className="text-[12.5px] text-slate-400 dark:text-slate-500 font-medium">School detail</span>
           <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500">
             <X size={16} />
           </button>
         </div>
-
-        <div className="flex gap-1.5 px-5 pt-4 border-b border-slate-100 dark:border-slate-800 sticky top-[57px] bg-white dark:bg-slate-900 z-10">
-          {[{ key: "overview", label: "Overview" }, { key: "import", label: "Data Import" }].map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`px-3 py-2 text-[13px] font-medium border-b-2 -mb-px ${
-                tab === t.key ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-600"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {tab === "import" ? (
-          <div className="p-5">
-            <DataImportSection school={school} importState={importState} onConfirmImport={onConfirmImport} />
-          </div>
-        ) : (
         <div className="p-5">
           <div className="flex items-center gap-3 mb-5">
             <SchoolLogo school={school} size={48} rounded="rounded-xl" />
@@ -5228,7 +5292,6 @@ function SchoolDetailDrawer({ school, plan, invoices, importState, onClose, onAc
             ))}
           </div>
         </div>
-        )}
       </div>
     </div>
   );
@@ -5422,7 +5485,7 @@ function StaffDirectoryScreen({ staff, onAddStaff }) {
   );
 }
 
-function ClassSectionManagerScreen({ sections = SECTION_MANAGER_DATA }) {
+function ClassSectionManagerScreen() {
   return (
     <div className="max-w-4xl">
       <div className="mb-5">
@@ -5441,7 +5504,7 @@ function ClassSectionManagerScreen({ sections = SECTION_MANAGER_DATA }) {
             </tr>
           </thead>
           <tbody>
-            {sections.map((r) => (
+            {SECTION_MANAGER_DATA.map((r) => (
               <tr key={`${r.cls}-${r.section}`} className="border-b border-slate-50 last:border-0">
                 <td className="px-4 py-3 text-[13.5px] text-slate-700 dark:text-slate-200">{r.cls}</td>
                 <td className="px-4 py-3 text-[13px] text-slate-600 dark:text-slate-300">Section {r.section}</td>
@@ -6253,6 +6316,52 @@ export default function SchoolOS() {
   const [openStudentId, setOpenStudentId] = useState(null);
   const [showNewInquiry, setShowNewInquiry] = useState(false);
 
+  const [authChecked, setAuthChecked] = useState(false);
+
+  // On first load, check for an existing Supabase session (e.g. the person
+  // refreshed the page) and restore their role/school instead of bouncing
+  // them back to the landing screen.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function restoreSession() {
+      const { data } = await supabase.auth.getSession();
+      const user = data.session?.user;
+      if (!user) {
+        if (!cancelled) setAuthChecked(true);
+        return;
+      }
+      const profile = await fetchProfile(user.id);
+      if (cancelled) return;
+      if (profile) {
+        const restoredRole = ROLE_BY_ID[profile.role];
+        if (restoredRole) {
+          setRole(restoredRole);
+          if (profile.school_id) {
+            const matchedSchool = SCHOOLS.find((s) => s.id === profile.school_id);
+            if (matchedSchool) setSchool(matchedSchool);
+          }
+        }
+      }
+      setAuthChecked(true);
+    }
+
+    restoreSession();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        setRole(null);
+        setSchool(null);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      listener?.subscription?.unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [entryMode, setEntryMode] = useState("landing"); // landing | find | familyLogin | staffLogin | superAdminLogin
   const [publicStage, setPublicStage] = useState("browse");
   const [enquirySchool, setEnquirySchool] = useState(null);
@@ -6282,9 +6391,6 @@ export default function SchoolOS() {
   const [invoices, setInvoices] = useState(INVOICES_INITIAL);
   const [staffList, setStaffList] = useState(STAFF_DIRECTORY_INITIAL);
   const [feeHeads, setFeeHeads] = useState(FEE_STRUCTURE_ADMIN_INITIAL);
-  const [sectionsList, setSectionsList] = useState(SECTION_MANAGER_DATA);
-  // Tracks Super Admin's Data Import onboarding status per school: { [schoolId]: { students: {status,rows,count}, staff: {...}, classes: {...}, fees: {...} } }
-  const [schoolImports, setSchoolImports] = useState({});
   const [transportRoutes, setTransportRoutes] = useState(TRANSPORT_ROUTES_INITIAL);
   const [hostelBlocks, setHostelBlocks] = useState(HOSTEL_BLOCKS_INITIAL);
   const [schoolNotices, setSchoolNotices] = useState(SCHOOL_NOTICES_INITIAL);
@@ -6627,86 +6733,6 @@ export default function SchoolOS() {
     setSchoolsList((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
   }
 
-  // Called when Super Admin confirms a Data Import for a school. Records the
-  // onboarding status for that school/type, and syncs the imported rows into
-  // the app's live working data (students/staffList/sectionsList/feeHeads).
-  // Note: this prototype doesn't yet partition that working data per school
-  // (single shared dataset across the demo), so the sync below applies
-  // platform-wide rather than school-scoped — partitioning by school_id is
-  // the next step once this connects to a real multi-tenant database.
-  function handleConfirmImport(schoolId, typeKey, rows) {
-    setSchoolImports((prev) => ({
-      ...prev,
-      [schoolId]: {
-        ...(prev[schoolId] || {}),
-        [typeKey]: { status: "live", rows, count: rows.length },
-      },
-    }));
-
-    if (typeKey === "students") {
-      const converted = rows.map((r) => ({
-        id: `STU-IMP-${r.admission_number || Math.random().toString(36).slice(2, 8)}`,
-        inquiryId: null,
-        name: r.name,
-        parentName: r.parent_name,
-        phone: r.parent_phone,
-        parentEmail: r.parent_email || null,
-        dateOfBirth: r.date_of_birth || null,
-        classApplied: r.class,
-        allocated: true,
-        academicYear: ACADEMIC_YEARS[0],
-        section: r.section,
-        rollNumber: r.roll_number,
-        house: r.house || null,
-        busRoute: r.bus_route || null,
-        hostel: "Not Applicable",
-        classTeacher: null,
-        status: "Active",
-        photo: null,
-        admissionNo: r.admission_number,
-        credentials: null,
-      }));
-      setStudents((prev) => {
-        const byAdmissionNo = new Map(prev.map((s) => [s.admissionNo, s]));
-        converted.forEach((s) => byAdmissionNo.set(s.admissionNo, s));
-        return Array.from(byAdmissionNo.values());
-      });
-    }
-
-    if (typeKey === "staff") {
-      const converted = rows.map((r) => ({
-        name: r.name, role: r.role, subject: r.subject_or_department || "", email: r.email, phone: r.phone, status: r.status || "Active",
-      }));
-      setStaffList((prev) => {
-        const byEmail = new Map(prev.map((s) => [s.email, s]));
-        converted.forEach((s) => byEmail.set(s.email, s));
-        return Array.from(byEmail.values());
-      });
-    }
-
-    if (typeKey === "classes") {
-      const converted = rows.map((r) => ({
-        cls: r.class, section: r.section, teacher: r.class_teacher_name || "TBD", strength: 0, capacity: Number(r.capacity) || 40,
-      }));
-      setSectionsList((prev) => {
-        const byKey = new Map(prev.map((s) => [`${s.cls}||${s.section}`, s]));
-        converted.forEach((s) => byKey.set(`${s.cls}||${s.section}`, s));
-        return Array.from(byKey.values());
-      });
-    }
-
-    if (typeKey === "fees") {
-      const converted = rows.map((r, idx) => ({
-        id: `FH-IMP-${idx}-${Date.now()}`, head: r.fee_head_name, term: r.term, amount: Number(r.amount) || 0,
-      }));
-      setFeeHeads((prev) => {
-        const byHead = new Map(prev.map((f) => [f.head, f]));
-        converted.forEach((f) => byHead.set(f.head, f));
-        return Array.from(byHead.values());
-      });
-    }
-  }
-
   function addStaff(form) {
     setStaffList((prev) => [...prev, { ...form, status: "Active" }]);
   }
@@ -6763,6 +6789,14 @@ export default function SchoolOS() {
     setSchool(null);
     setPublicStage("browse");
     setEnquirySchool(null);
+  }
+
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
+        <Loader2 size={28} className="animate-spin text-indigo-600" />
+      </div>
+    );
   }
 
   if (!role) {
@@ -6857,7 +6891,7 @@ export default function SchoolOS() {
       navItems={navItems}
       personName={personName}
       onNavigate={handleNavigate}
-      onLogout={() => { setRole(null); setView("dashboard"); goHome(); }}
+      onLogout={() => { supabase.auth.signOut(); setRole(null); setView("dashboard"); goHome(); }}
       darkMode={darkMode}
       onToggleDark={() => setDarkMode((v) => !v)}
       searchIndex={searchIndex}
@@ -7035,7 +7069,7 @@ export default function SchoolOS() {
       {role.id === "admin" && view === "staff" && (
         <StaffDirectoryScreen staff={staffList} onAddStaff={addStaff} />
       )}
-      {role.id === "admin" && view === "classes" && <ClassSectionManagerScreen sections={sectionsList} />}
+      {role.id === "admin" && view === "classes" && <ClassSectionManagerScreen />}
       {role.id === "admin" && view === "transport" && (
         <TransportScreen routes={transportRoutes} onAddRoute={addTransportRoute} />
       )}
@@ -7094,13 +7128,11 @@ export default function SchoolOS() {
           school={openSuperAdminSchool}
           plan={schoolPlans[openSuperAdminSchool.id] || { plan: "Starter", mrr: 8000, status: "Trial", renewal: "TBD" }}
           invoices={invoices}
-          importState={schoolImports[openSuperAdminSchool.id] || {}}
           onClose={() => setOpenSchoolId(null)}
           onActivateSchool={activateSchool}
           onUpdateBranding={updateSchoolBranding}
           onGenerateInvoice={generateInvoice}
           onMarkInvoicePaid={markInvoicePaid}
-          onConfirmImport={handleConfirmImport}
         />
       )}
       {showAddSchool && (
