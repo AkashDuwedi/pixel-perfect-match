@@ -31,5 +31,5 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
     console.error("Failed to load profile:", error.message);
     return null;
   }
-  return data as Profile;
+  return data as unknown as Profile;
 }
