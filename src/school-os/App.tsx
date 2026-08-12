@@ -15,6 +15,7 @@ import {
   Paperclip, Smartphone, Loader2, Landmark, Share2, QrCode, Printer, IdCard, Download, Sparkles
 } from "lucide-react";
 import { supabase, fetchProfile } from "../lib/supabaseClient";
+import { authService } from "@/services/auth.service";
 
 /* ---------------------------------------------------------
    DEMO DATA
