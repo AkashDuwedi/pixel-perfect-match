@@ -1981,6 +1981,29 @@ function RoleLogin({ school, roles, onLogin, onBack }) {
                   className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3.5 py-2.5 text-[14px] outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50"
                 />
               </div>
+              <div className="flex items-center justify-between pt-0.5">
+                <label className="flex items-center gap-2 text-[13px] text-slate-600 dark:text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                    className="h-3.5 w-3.5 rounded border-slate-300 accent-indigo-600"
+                  />
+                  Remember me
+                </label>
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-[13px] font-medium text-indigo-600 hover:text-indigo-700"
+                >
+                  Forgot password?
+                </button>
+              </div>
+              {resetNote && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[13px] text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+                  {resetNote}
+                </div>
+              )}
               <button
                 onClick={handleSubmit}
                 disabled={loading}
