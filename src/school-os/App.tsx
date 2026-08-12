@@ -15,6 +15,7 @@ import {
   Paperclip, Smartphone, Loader2, Landmark, Share2, QrCode, Printer, IdCard, Download, Sparkles
 } from "lucide-react";
 import { supabase, fetchProfile } from "../lib/supabaseClient";
+import { authService } from "@/services/auth.service";
 
 /* ---------------------------------------------------------
    DEMO DATA
@@ -484,6 +485,9 @@ const ROLES = [
   { id: "teacher", label: "Teacher", icon: Users, desc: "Class and student management" },
   { id: "parent", label: "Parent", icon: Users, desc: "Track your child's journey" },
   { id: "student", label: "Student", icon: GraduationCap, desc: "Your school, your day" },
+  { id: "receptionist", label: "Reception", icon: PhoneCall, desc: "Front desk, visitors, calls" },
+  { id: "accounts", label: "Accounts", icon: ClipboardList, desc: "Fees, invoices, collections" },
+  { id: "hr", label: "HR", icon: Users, desc: "Staff records and payroll" },
   { id: "admin", label: "School Admin", icon: Settings, desc: "Staff, fees, settings" },
   { id: "superadmin", label: "Super Admin", icon: Building2, desc: "Platform-wide control" },
 ];
@@ -491,7 +495,9 @@ const ROLES = [
 // Family Sign In only ever offers these two roles
 const FAMILY_ROLES = ROLES.filter((r) => r.id === "parent" || r.id === "student");
 // School Staff Sign In offers everyone who works at the school (never Super Admin)
-const STAFF_ROLES = ROLES.filter((r) => ["counselor", "coordinator", "teacher", "principal", "admin"].includes(r.id));
+const STAFF_ROLES = ROLES.filter((r) =>
+  ["counselor", "coordinator", "teacher", "principal", "receptionist", "accounts", "hr", "admin"].includes(r.id),
+);
 // Super Admin is not scoped to a school and isn't part of either picker above
 const SUPERADMIN_ROLE = ROLES.find((r) => r.id === "superadmin");
 // Used to reconstruct a full role object (with its icon) from just the role id
@@ -1848,33 +1854,47 @@ function RoleLogin({ school, roles, onLogin, onBack }) {
   const [step, setStep] = useState("pick"); // pick -> credentials
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(authService.getRemember());
+  const [resetNote, setResetNote] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const roleOptions = roles || ROLES;
 
+  async function handleForgotPassword() {
+    setError("");
+    setResetNote("");
+    if (!email.trim()) {
+      setError("Enter your email first, then tap Forgot password.");
+      return;
+    }
+    setLoading(true);
+    const { error: resetError } = await authService.requestPasswordReset(email);
+    setLoading(false);
+    if (resetError) {
+      setError(resetError);
+      return;
+    }
+    setResetNote("If that email has an account, a reset link is on its way.");
+  }
+
   async function handleSubmit() {
     setError("");
+    setResetNote("");
     if (!email.trim() || !password) {
       setError("Enter your email and password.");
       return;
     }
     setLoading(true);
-    const { data, error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    if (authError || !data.user) {
-      setLoading(false);
-      setError("Incorrect email or password.");
-      return;
-    }
-    const profile = await fetchProfile(data.user.id);
+    const { profile, error: authError } = await authService.signIn({
+      email,
+      password,
+      expectedRole: role.id,
+      expectedSchoolId: school.id,
+      remember,
+    });
     setLoading(false);
-    if (!profile || profile.role !== role.id) {
-      await supabase.auth.signOut();
-      setError(`This account doesn't have ${role.label} access.`);
-      return;
-    }
-    if (profile.school_id !== school.id) {
-      await supabase.auth.signOut();
-      setError(`This account isn't linked to ${school.name}.`);
+    if (authError || !profile) {
+      setError(authError || "Unable to sign in.");
       return;
     }
     onLogin(ROLE_BY_ID[profile.role] || role);
@@ -1962,6 +1982,29 @@ function RoleLogin({ school, roles, onLogin, onBack }) {
                   className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3.5 py-2.5 text-[14px] outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50"
                 />
               </div>
+              <div className="flex items-center justify-between pt-0.5">
+                <label className="flex items-center gap-2 text-[13px] text-slate-600 dark:text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                    className="h-3.5 w-3.5 rounded border-slate-300 accent-indigo-600"
+                  />
+                  Remember me
+                </label>
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-[13px] font-medium text-indigo-600 hover:text-indigo-700"
+                >
+                  Forgot password?
+                </button>
+              </div>
+              {resetNote && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[13px] text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+                  {resetNote}
+                </div>
+              )}
               <button
                 onClick={handleSubmit}
                 disabled={loading}
