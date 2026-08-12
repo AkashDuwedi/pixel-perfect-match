@@ -1853,33 +1853,47 @@ function RoleLogin({ school, roles, onLogin, onBack }) {
   const [step, setStep] = useState("pick"); // pick -> credentials
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(authService.getRemember());
+  const [resetNote, setResetNote] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const roleOptions = roles || ROLES;
 
+  async function handleForgotPassword() {
+    setError("");
+    setResetNote("");
+    if (!email.trim()) {
+      setError("Enter your email first, then tap Forgot password.");
+      return;
+    }
+    setLoading(true);
+    const { error: resetError } = await authService.requestPasswordReset(email);
+    setLoading(false);
+    if (resetError) {
+      setError(resetError);
+      return;
+    }
+    setResetNote("If that email has an account, a reset link is on its way.");
+  }
+
   async function handleSubmit() {
     setError("");
+    setResetNote("");
     if (!email.trim() || !password) {
       setError("Enter your email and password.");
       return;
     }
     setLoading(true);
-    const { data, error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    if (authError || !data.user) {
-      setLoading(false);
-      setError("Incorrect email or password.");
-      return;
-    }
-    const profile = await fetchProfile(data.user.id);
+    const { profile, error: authError } = await authService.signIn({
+      email,
+      password,
+      expectedRole: role.id,
+      expectedSchoolId: school.id,
+      remember,
+    });
     setLoading(false);
-    if (!profile || profile.role !== role.id) {
-      await supabase.auth.signOut();
-      setError(`This account doesn't have ${role.label} access.`);
-      return;
-    }
-    if (profile.school_id !== school.id) {
-      await supabase.auth.signOut();
-      setError(`This account isn't linked to ${school.name}.`);
+    if (authError || !profile) {
+      setError(authError || "Unable to sign in.");
       return;
     }
     onLogin(ROLE_BY_ID[profile.role] || role);
