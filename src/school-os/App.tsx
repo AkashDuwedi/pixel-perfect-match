@@ -484,6 +484,9 @@ const ROLES = [
   { id: "teacher", label: "Teacher", icon: Users, desc: "Class and student management" },
   { id: "parent", label: "Parent", icon: Users, desc: "Track your child's journey" },
   { id: "student", label: "Student", icon: GraduationCap, desc: "Your school, your day" },
+  { id: "receptionist", label: "Reception", icon: PhoneCall, desc: "Front desk, visitors, calls" },
+  { id: "accounts", label: "Accounts", icon: ClipboardList, desc: "Fees, invoices, collections" },
+  { id: "hr", label: "HR", icon: Users, desc: "Staff records and payroll" },
   { id: "admin", label: "School Admin", icon: Settings, desc: "Staff, fees, settings" },
   { id: "superadmin", label: "Super Admin", icon: Building2, desc: "Platform-wide control" },
 ];
@@ -491,7 +494,9 @@ const ROLES = [
 // Family Sign In only ever offers these two roles
 const FAMILY_ROLES = ROLES.filter((r) => r.id === "parent" || r.id === "student");
 // School Staff Sign In offers everyone who works at the school (never Super Admin)
-const STAFF_ROLES = ROLES.filter((r) => ["counselor", "coordinator", "teacher", "principal", "admin"].includes(r.id));
+const STAFF_ROLES = ROLES.filter((r) =>
+  ["counselor", "coordinator", "teacher", "principal", "receptionist", "accounts", "hr", "admin"].includes(r.id),
+);
 // Super Admin is not scoped to a school and isn't part of either picker above
 const SUPERADMIN_ROLE = ROLES.find((r) => r.id === "superadmin");
 // Used to reconstruct a full role object (with its icon) from just the role id
