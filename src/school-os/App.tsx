@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useState, useMemo, useEffect } from "react";
+import { useLiveStudents } from "@/hooks/useLiveStudents";
 import {
   School, Search, Bell, ChevronDown, Phone, Calendar, Users, TrendingUp,
   Plus, X, MapPin, Mail, Clock, CheckCircle2, ArrowRight, LayoutGrid,
@@ -6355,6 +6356,14 @@ export default function SchoolOS() {
   const [view, setView] = useState("dashboard");
   const [inquiries, setInquiries] = useState(makeInquiries);
   const [students, setStudents] = useState(() => deriveEnrolledStudents(inquiries));
+
+  // Live roster from the database. Mock students stay in place; real rows are
+  // merged on top once the user is signed in and their school has students.
+  const { live: liveStudents } = useLiveStudents(!!role);
+  useEffect(() => {
+    if (!liveStudents.length) return;
+    setStudents((prev) => [...liveStudents, ...prev.filter((s) => !s.isLive)]);
+  }, [liveStudents]);
   const [openInquiryId, setOpenInquiryId] = useState(null);
   const [openStudentId, setOpenStudentId] = useState(null);
   const [showNewInquiry, setShowNewInquiry] = useState(false);
