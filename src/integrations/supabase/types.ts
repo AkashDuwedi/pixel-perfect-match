@@ -100,33 +100,78 @@ export type Database = {
           },
         ]
       }
+      permissions: {
+        Row: {
+          action: string
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          module: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          module: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          module?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
           email: string
+          first_name: string | null
           full_name: string | null
           id: string
           is_demo: boolean
+          last_name: string | null
+          phone: string | null
           role: Database["public"]["Enums"]["app_role"]
           school_id: string | null
+          status: string
+          updated_at: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           email: string
+          first_name?: string | null
           full_name?: string | null
           id: string
           is_demo?: boolean
+          last_name?: string | null
+          phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           school_id?: string | null
+          status?: string
+          updated_at?: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           email?: string
+          first_name?: string | null
           full_name?: string | null
           id?: string
           is_demo?: boolean
+          last_name?: string | null
+          phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           school_id?: string | null
+          status?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -138,36 +183,98 @@ export type Database = {
           },
         ]
       }
+      role_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          permission_key: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          permission_key: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          permission_key?: string
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_key_fkey"
+            columns: ["permission_key"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       schools: {
         Row: {
+          academic_year: string | null
+          address: string | null
           board: string | null
           city: string | null
           code: string
           created_at: string
+          email: string | null
           id: string
+          is_active: boolean
+          logo_url: string | null
           name: string
+          phone: string | null
+          pincode: string | null
           principal_name: string | null
+          state: string | null
+          subscription_plan: string
+          subscription_status: string
           updated_at: string
+          website: string | null
         }
         Insert: {
+          academic_year?: string | null
+          address?: string | null
           board?: string | null
           city?: string | null
           code: string
           created_at?: string
+          email?: string | null
           id?: string
+          is_active?: boolean
+          logo_url?: string | null
           name: string
+          phone?: string | null
+          pincode?: string | null
           principal_name?: string | null
+          state?: string | null
+          subscription_plan?: string
+          subscription_status?: string
           updated_at?: string
+          website?: string | null
         }
         Update: {
+          academic_year?: string | null
+          address?: string | null
           board?: string | null
           city?: string | null
           code?: string
           created_at?: string
+          email?: string | null
           id?: string
+          is_active?: boolean
+          logo_url?: string | null
           name?: string
+          phone?: string | null
+          pincode?: string | null
           principal_name?: string | null
+          state?: string | null
+          subscription_plan?: string
+          subscription_status?: string
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -408,6 +515,38 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          school_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          school_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          school_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -430,6 +569,9 @@ export type Database = {
         | "teacher"
         | "parent"
         | "student"
+        | "receptionist"
+        | "accounts"
+        | "hr"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -566,6 +708,9 @@ export const Constants = {
         "teacher",
         "parent",
         "student",
+        "receptionist",
+        "accounts",
+        "hr",
       ],
     },
   },

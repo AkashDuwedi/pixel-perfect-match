@@ -96,6 +96,20 @@ export const authService = {
     return { error: error ? error.message : null };
   },
 
+  /** Permission keys granted to a role (from role_permissions). */
+  async getPermissions(role: RoleId): Promise<string[]> {
+    const { data, error } = await supabase
+      .from("role_permissions" as never)
+      .select("permission_key")
+      .eq("role", role);
+
+    if (error) {
+      console.error("[auth] failed to load permissions:", error.message);
+      return [];
+    }
+    return ((data ?? []) as unknown as { permission_key: string }[]).map((r) => r.permission_key);
+  },
+
   onAuthStateChange(callback: (event: string, userId: string | null) => void) {
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       callback(event, session?.user?.id ?? null);
