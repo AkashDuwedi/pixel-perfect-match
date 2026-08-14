@@ -6367,6 +6367,9 @@ export default function SchoolOS() {
     if (!liveStudents.length) return;
     setStudents((prev) => [...liveStudents, ...prev.filter((s) => !s.isLive)]);
   }, [liveStudents]);
+
+  // Live classes/sections (with real student counts) for the admin screens.
+  const { live: liveSections } = useLiveSections(!!role);
   const [openInquiryId, setOpenInquiryId] = useState(null);
   const [openStudentId, setOpenStudentId] = useState(null);
   const [showNewInquiry, setShowNewInquiry] = useState(false);
