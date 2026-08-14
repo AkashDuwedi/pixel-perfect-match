@@ -5531,7 +5531,8 @@ function StaffDirectoryScreen({ staff, onAddStaff }) {
   );
 }
 
-function ClassSectionManagerScreen() {
+function ClassSectionManagerScreen({ sections }) {
+  const rows = sections && sections.length ? sections : SECTION_MANAGER_DATA;
   return (
     <div className="max-w-4xl">
       <div className="mb-5">
