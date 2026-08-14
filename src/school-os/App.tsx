@@ -5416,7 +5416,7 @@ function SchoolAdminDashboard({ school, staff, notices, onNavigate, sections }) 
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <KpiCard label="Staff members" value={staff.length} icon={Briefcase} tint="#4F46E5" />
-        <KpiCard label="Classes & sections" value={SECTION_MANAGER_DATA.length} icon={Layers} tint="#0EA5A0" />
+        <KpiCard label="Classes & sections" value={sectionRows.length} icon={Layers} tint="#0EA5A0" />
         <KpiCard label="Fee heads configured" value={FEE_STRUCTURE_ADMIN_INITIAL.length} icon={IndianRupee} tint="#059669" />
         <KpiCard label="Notices this month" value={notices.length} icon={Megaphone} tint="#D97706" />
       </div>
