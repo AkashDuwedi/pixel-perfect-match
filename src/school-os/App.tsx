@@ -5551,7 +5551,7 @@ function ClassSectionManagerScreen({ sections }) {
             </tr>
           </thead>
           <tbody>
-            {SECTION_MANAGER_DATA.map((r) => (
+            {rows.map((r) => (
               <tr key={`${r.cls}-${r.section}`} className="border-b border-slate-50 last:border-0">
                 <td className="px-4 py-3 text-[13.5px] text-slate-700 dark:text-slate-200">{r.cls}</td>
                 <td className="px-4 py-3 text-[13px] text-slate-600 dark:text-slate-300">Section {r.section}</td>
