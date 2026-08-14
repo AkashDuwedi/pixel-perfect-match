@@ -7124,7 +7124,7 @@ export default function SchoolOS() {
       {role.id === "admin" && view === "staff" && (
         <StaffDirectoryScreen staff={staffList} onAddStaff={addStaff} />
       )}
-      {role.id === "admin" && view === "classes" && <ClassSectionManagerScreen />}
+      {role.id === "admin" && view === "classes" && <ClassSectionManagerScreen sections={liveSections} />}
       {role.id === "admin" && view === "transport" && (
         <TransportScreen routes={transportRoutes} onAddRoute={addTransportRoute} />
       )}
