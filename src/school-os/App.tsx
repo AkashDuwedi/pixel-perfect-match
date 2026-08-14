@@ -7131,7 +7131,7 @@ export default function SchoolOS() {
       )}
 
       {role.id === "admin" && view === "dashboard" && (
-        <SchoolAdminDashboard school={displaySchool} staff={staffList} notices={schoolNotices} onNavigate={handleNavigate} />
+        <SchoolAdminDashboard school={displaySchool} staff={staffList} notices={schoolNotices} onNavigate={handleNavigate} sections={liveSections} />
       )}
       {role.id === "admin" && view === "staff" && (
         <StaffDirectoryScreen staff={staffList} onAddStaff={addStaff} />
