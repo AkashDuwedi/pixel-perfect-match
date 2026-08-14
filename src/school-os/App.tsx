@@ -6448,6 +6448,14 @@ export default function SchoolOS() {
   const [schoolPlans, setSchoolPlans] = useState(SCHOOL_PLANS_INITIAL);
   const [invoices, setInvoices] = useState(INVOICES_INITIAL);
   const [staffList, setStaffList] = useState(STAFF_DIRECTORY_INITIAL);
+
+  // Live staff directory from the database; mock rows stay as fallback.
+  const { live: liveStaff } = useLiveStaff(!!role);
+  useEffect(() => {
+    if (!liveStaff.length) return;
+    setStaffList((prev) => [...liveStaff, ...prev.filter((s) => !s.isLive)]);
+  }, [liveStaff]);
+
   const [feeHeads, setFeeHeads] = useState(FEE_STRUCTURE_ADMIN_INITIAL);
   const [transportRoutes, setTransportRoutes] = useState(TRANSPORT_ROUTES_INITIAL);
   const [hostelBlocks, setHostelBlocks] = useState(HOSTEL_BLOCKS_INITIAL);
