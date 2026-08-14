@@ -1,6 +1,8 @@
 // @ts-nocheck
 import React, { useState, useMemo, useEffect } from "react";
 import { useLiveStudents } from "@/hooks/useLiveStudents";
+import { useLiveStaff } from "@/hooks/useLiveStaff";
+import { useLiveSections } from "@/hooks/useLiveSections";
 import {
   School, Search, Bell, ChevronDown, Phone, Calendar, Users, TrendingUp,
   Plus, X, MapPin, Mail, Clock, CheckCircle2, ArrowRight, LayoutGrid,
@@ -5403,7 +5405,8 @@ function AddSchoolModal({ onClose, onCreate }) {
    SCHOOL ADMIN
 --------------------------------------------------------- */
 
-function SchoolAdminDashboard({ school, staff, notices, onNavigate }) {
+function SchoolAdminDashboard({ school, staff, notices, onNavigate, sections }) {
+  const sectionRows = sections && sections.length ? sections : SECTION_MANAGER_DATA;
   return (
     <div className="max-w-6xl">
       <div className="mb-6">
@@ -5413,7 +5416,7 @@ function SchoolAdminDashboard({ school, staff, notices, onNavigate }) {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <KpiCard label="Staff members" value={staff.length} icon={Briefcase} tint="#4F46E5" />
-        <KpiCard label="Classes & sections" value={SECTION_MANAGER_DATA.length} icon={Layers} tint="#0EA5A0" />
+        <KpiCard label="Classes & sections" value={sectionRows.length} icon={Layers} tint="#0EA5A0" />
         <KpiCard label="Fee heads configured" value={FEE_STRUCTURE_ADMIN_INITIAL.length} icon={IndianRupee} tint="#059669" />
         <KpiCard label="Notices this month" value={notices.length} icon={Megaphone} tint="#D97706" />
       </div>
@@ -5529,7 +5532,8 @@ function StaffDirectoryScreen({ staff, onAddStaff }) {
   );
 }
 
-function ClassSectionManagerScreen() {
+function ClassSectionManagerScreen({ sections }) {
+  const rows = sections && sections.length ? sections : SECTION_MANAGER_DATA;
   return (
     <div className="max-w-4xl">
       <div className="mb-5">
@@ -5548,7 +5552,7 @@ function ClassSectionManagerScreen() {
             </tr>
           </thead>
           <tbody>
-            {SECTION_MANAGER_DATA.map((r) => (
+            {rows.map((r) => (
               <tr key={`${r.cls}-${r.section}`} className="border-b border-slate-50 last:border-0">
                 <td className="px-4 py-3 text-[13.5px] text-slate-700 dark:text-slate-200">{r.cls}</td>
                 <td className="px-4 py-3 text-[13px] text-slate-600 dark:text-slate-300">Section {r.section}</td>
@@ -6364,6 +6368,9 @@ export default function SchoolOS() {
     if (!liveStudents.length) return;
     setStudents((prev) => [...liveStudents, ...prev.filter((s) => !s.isLive)]);
   }, [liveStudents]);
+
+  // Live classes/sections (with real student counts) for the admin screens.
+  const { live: liveSections } = useLiveSections(!!role);
   const [openInquiryId, setOpenInquiryId] = useState(null);
   const [openStudentId, setOpenStudentId] = useState(null);
   const [showNewInquiry, setShowNewInquiry] = useState(false);
@@ -6442,6 +6449,14 @@ export default function SchoolOS() {
   const [schoolPlans, setSchoolPlans] = useState(SCHOOL_PLANS_INITIAL);
   const [invoices, setInvoices] = useState(INVOICES_INITIAL);
   const [staffList, setStaffList] = useState(STAFF_DIRECTORY_INITIAL);
+
+  // Live staff directory from the database; mock rows stay as fallback.
+  const { live: liveStaff } = useLiveStaff(!!role);
+  useEffect(() => {
+    if (!liveStaff.length) return;
+    setStaffList((prev) => [...liveStaff, ...prev.filter((s) => !s.isLive)]);
+  }, [liveStaff]);
+
   const [feeHeads, setFeeHeads] = useState(FEE_STRUCTURE_ADMIN_INITIAL);
   const [transportRoutes, setTransportRoutes] = useState(TRANSPORT_ROUTES_INITIAL);
   const [hostelBlocks, setHostelBlocks] = useState(HOSTEL_BLOCKS_INITIAL);
@@ -7116,12 +7131,12 @@ export default function SchoolOS() {
       )}
 
       {role.id === "admin" && view === "dashboard" && (
-        <SchoolAdminDashboard school={displaySchool} staff={staffList} notices={schoolNotices} onNavigate={handleNavigate} />
+        <SchoolAdminDashboard school={displaySchool} staff={staffList} notices={schoolNotices} onNavigate={handleNavigate} sections={liveSections} />
       )}
       {role.id === "admin" && view === "staff" && (
         <StaffDirectoryScreen staff={staffList} onAddStaff={addStaff} />
       )}
-      {role.id === "admin" && view === "classes" && <ClassSectionManagerScreen />}
+      {role.id === "admin" && view === "classes" && <ClassSectionManagerScreen sections={liveSections} />}
       {role.id === "admin" && view === "transport" && (
         <TransportScreen routes={transportRoutes} onAddRoute={addTransportRoute} />
       )}
