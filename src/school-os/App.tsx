@@ -5405,7 +5405,8 @@ function AddSchoolModal({ onClose, onCreate }) {
    SCHOOL ADMIN
 --------------------------------------------------------- */
 
-function SchoolAdminDashboard({ school, staff, notices, onNavigate }) {
+function SchoolAdminDashboard({ school, staff, notices, onNavigate, sections }) {
+  const sectionRows = sections && sections.length ? sections : SECTION_MANAGER_DATA;
   return (
     <div className="max-w-6xl">
       <div className="mb-6">
