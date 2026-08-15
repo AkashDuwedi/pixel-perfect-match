@@ -1888,13 +1888,17 @@ function RoleLogin({ school, roles, onLogin, onBack }) {
       return;
     }
     setLoading(true);
+    // Only enforce the school guard when the picker school is a real tenant id
+    // (demo/mock schools use short ids like "s1" and would otherwise block login).
+    const isTenantId = /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(String(school?.id ?? ""));
     const { profile, error: authError } = await authService.signIn({
       email,
       password,
       expectedRole: role.id,
-      expectedSchoolId: school.id,
+      expectedSchoolId: isTenantId ? school.id : undefined,
       remember,
     });
+
     setLoading(false);
     if (authError || !profile) {
       setError(authError || "Unable to sign in.");
