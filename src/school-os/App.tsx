@@ -1852,7 +1852,25 @@ function SuperAdminLoginScreen({ onBack, onLogin }) {
   );
 }
 
+// Demo accounts seeded in the backend, surfaced on the login screen so the
+// credentials are discoverable while the product is in demo mode.
+const DEMO_PASSWORD = "Vedaalay@2026";
+const DEMO_LOGINS = {
+  superadmin: { email: "superadmin@vedaalay.com", password: "Vedaalay@Admin2026" },
+  admin: { email: "admin@vedaalay.com", password: DEMO_PASSWORD },
+  principal: { email: "principal@vedaalay.com", password: DEMO_PASSWORD },
+  coordinator: { email: "coordinator@vedaalay.com", password: DEMO_PASSWORD },
+  teacher: { email: "teacher@vedaalay.com", password: DEMO_PASSWORD },
+  counselor: { email: "counselor@vedaalay.com", password: DEMO_PASSWORD },
+  receptionist: { email: "reception@vedaalay.com", password: DEMO_PASSWORD },
+  accounts: { email: "accounts@vedaalay.com", password: DEMO_PASSWORD },
+  hr: { email: "hr@vedaalay.com", password: DEMO_PASSWORD },
+  parent: { email: "parent@vedaalay.com", password: DEMO_PASSWORD },
+  student: { email: "student@vedaalay.com", password: DEMO_PASSWORD },
+};
+
 function RoleLogin({ school, roles, onLogin, onBack }) {
+
   const [role, setRole] = useState(null);
   const [step, setStep] = useState("pick"); // pick -> credentials
   const [email, setEmail] = useState("");
