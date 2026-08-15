@@ -2020,11 +2020,30 @@ function RoleLogin({ school, roles, onLogin, onBack }) {
                 {loading && <Loader2 size={15} className="animate-spin" />}
                 {loading ? "Signing in..." : "Continue"}
               </button>
+              {DEMO_LOGINS[role.id] && (
+                <div className="mt-3 rounded-lg border border-slate-200 bg-white px-3.5 py-3 text-[12.5px] text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                  <div className="font-medium text-slate-700 dark:text-slate-200 mb-1">Demo account</div>
+                  <div className="font-mono text-[12px] break-all">{DEMO_LOGINS[role.id].email}</div>
+                  <div className="font-mono text-[12px]">{DEMO_LOGINS[role.id].password}</div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail(DEMO_LOGINS[role.id].email);
+                      setPassword(DEMO_LOGINS[role.id].password);
+                      setError("");
+                    }}
+                    className="mt-2 text-[12.5px] font-medium text-indigo-600 hover:text-indigo-700"
+                  >
+                    Use these credentials
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
       </div>
     </div>
+
   );
 }
 
