@@ -6487,6 +6487,14 @@ export default function SchoolOS() {
   const [transferRequests, setTransferRequests] = useState(TRANSFER_REQUESTS);
 
   const [schoolsList, setSchoolsList] = useState(SCHOOLS);
+
+  // Live schools from the database; mock rows stay as fallback.
+  const { live: liveSchools } = useLiveSchools(!!role);
+  useEffect(() => {
+    if (!liveSchools.length) return;
+    setSchoolsList((prev) => [...liveSchools, ...prev.filter((s) => !(s as any).isLive)]);
+  }, [liveSchools]);
+
   const [schoolPlans, setSchoolPlans] = useState(SCHOOL_PLANS_INITIAL);
   const [invoices, setInvoices] = useState(INVOICES_INITIAL);
   const [staffList, setStaffList] = useState(STAFF_DIRECTORY_INITIAL);
