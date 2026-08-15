@@ -1852,7 +1852,25 @@ function SuperAdminLoginScreen({ onBack, onLogin }) {
   );
 }
 
+// Demo accounts seeded in the backend, surfaced on the login screen so the
+// credentials are discoverable while the product is in demo mode.
+const DEMO_PASSWORD = "Vedaalay@2026";
+const DEMO_LOGINS = {
+  superadmin: { email: "superadmin@vedaalay.com", password: "Vedaalay@Admin2026" },
+  admin: { email: "admin@vedaalay.com", password: DEMO_PASSWORD },
+  principal: { email: "principal@vedaalay.com", password: DEMO_PASSWORD },
+  coordinator: { email: "coordinator@vedaalay.com", password: DEMO_PASSWORD },
+  teacher: { email: "teacher@vedaalay.com", password: DEMO_PASSWORD },
+  counselor: { email: "counselor@vedaalay.com", password: DEMO_PASSWORD },
+  receptionist: { email: "reception@vedaalay.com", password: DEMO_PASSWORD },
+  accounts: { email: "accounts@vedaalay.com", password: DEMO_PASSWORD },
+  hr: { email: "hr@vedaalay.com", password: DEMO_PASSWORD },
+  parent: { email: "parent@vedaalay.com", password: DEMO_PASSWORD },
+  student: { email: "student@vedaalay.com", password: DEMO_PASSWORD },
+};
+
 function RoleLogin({ school, roles, onLogin, onBack }) {
+
   const [role, setRole] = useState(null);
   const [step, setStep] = useState("pick"); // pick -> credentials
   const [email, setEmail] = useState("");
@@ -1888,13 +1906,17 @@ function RoleLogin({ school, roles, onLogin, onBack }) {
       return;
     }
     setLoading(true);
+    // Only enforce the school guard when the picker school is a real tenant id
+    // (demo/mock schools use short ids like "s1" and would otherwise block login).
+    const isTenantId = /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(String(school?.id ?? ""));
     const { profile, error: authError } = await authService.signIn({
       email,
       password,
       expectedRole: role.id,
-      expectedSchoolId: school.id,
+      expectedSchoolId: isTenantId ? school.id : undefined,
       remember,
     });
+
     setLoading(false);
     if (authError || !profile) {
       setError(authError || "Unable to sign in.");
@@ -2016,11 +2038,30 @@ function RoleLogin({ school, roles, onLogin, onBack }) {
                 {loading && <Loader2 size={15} className="animate-spin" />}
                 {loading ? "Signing in..." : "Continue"}
               </button>
+              {DEMO_LOGINS[role.id] && (
+                <div className="mt-3 rounded-lg border border-slate-200 bg-white px-3.5 py-3 text-[12.5px] text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                  <div className="font-medium text-slate-700 dark:text-slate-200 mb-1">Demo account</div>
+                  <div className="font-mono text-[12px] break-all">{DEMO_LOGINS[role.id].email}</div>
+                  <div className="font-mono text-[12px]">{DEMO_LOGINS[role.id].password}</div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail(DEMO_LOGINS[role.id].email);
+                      setPassword(DEMO_LOGINS[role.id].password);
+                      setError("");
+                    }}
+                    className="mt-2 text-[12.5px] font-medium text-indigo-600 hover:text-indigo-700"
+                  >
+                    Use these credentials
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
       </div>
     </div>
+
   );
 }
 
