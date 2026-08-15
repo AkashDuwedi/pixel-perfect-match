@@ -3,6 +3,8 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useLiveStudents } from "@/hooks/useLiveStudents";
 import { useLiveStaff } from "@/hooks/useLiveStaff";
 import { useLiveSections } from "@/hooks/useLiveSections";
+import { useLiveSchools } from "@/hooks/useLiveSchools";
+
 import {
   School, Search, Bell, ChevronDown, Phone, Calendar, Users, TrendingUp,
   Plus, X, MapPin, Mail, Clock, CheckCircle2, ArrowRight, LayoutGrid,
