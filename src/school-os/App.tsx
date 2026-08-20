@@ -6499,6 +6499,37 @@ export default function SchoolOS() {
   const [schoolsList, setSchoolsList] = useState(SCHOOLS);
 
   // Live schools from the database; mock rows stay as fallback.
+  // Live timetable + attendance for the signed-in school; mock rows stay as fallback.
+  const { live: liveTimetable } = useLiveTimetable(!!role);
+  const {
+    records: liveAttendanceRecords,
+    sections: liveAttendanceSections,
+    save: saveLiveAttendance,
+  } = useLiveAttendance(!!role, todayKey);
+
+  useEffect(() => {
+    if (!Object.keys(liveAttendanceRecords).length) return;
+    setAttendanceRecords((prev) => ({ ...prev, ...liveAttendanceRecords }));
+  }, [liveAttendanceRecords]);
+
+  const liveSectionLabels = liveAttendanceSections.map((s) => s.label);
+  const liveRosters = useMemo(() => {
+    const map = {};
+    for (const st of liveStudents) {
+      if (!st.classApplied || !st.section) continue;
+      const label = `${st.classApplied} - ${st.section}`;
+      (map[label] = map[label] || []).push({
+        id: st.dbId,
+        rollNumber: st.rollNumber || "-",
+        name: st.name,
+        section: label,
+        attendancePct: 0,
+        house: st.house || "-",
+      });
+    }
+    return map;
+  }, [liveStudents]);
+
   const { live: liveSchools } = useLiveSchools(!!role);
   useEffect(() => {
     if (!liveSchools.length) return;
@@ -6769,6 +6800,8 @@ export default function SchoolOS() {
 
   function saveAttendance(section, dateKey, marks) {
     setAttendanceRecords((prev) => ({ ...prev, [`${section}|${dateKey}`]: marks }));
+    // Persist to the database when this section exists there.
+    void saveLiveAttendance(section, marks);
   }
 
   function postHomework(form) {
@@ -7076,6 +7109,8 @@ export default function SchoolOS() {
           todayKey={todayKey}
           onNavigate={handleNavigate}
           onOpenSection={(sec) => { setAttendanceSection(sec); setView("attendance"); }}
+          timetable={liveTimetable}
+          sections={liveSectionLabels}
         />
       )}
       {role.id === "teacher" && view === "attendance" && (
@@ -7084,6 +7119,8 @@ export default function SchoolOS() {
           attendanceRecords={attendanceRecords}
           todayKey={todayKey}
           onSave={saveAttendance}
+          sections={liveSectionLabels}
+          rosters={liveRosters}
         />
       )}
       {role.id === "teacher" && view === "homework" && (
