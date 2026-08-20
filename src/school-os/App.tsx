@@ -4,6 +4,8 @@ import { useLiveStudents } from "@/hooks/useLiveStudents";
 import { useLiveStaff } from "@/hooks/useLiveStaff";
 import { useLiveSections } from "@/hooks/useLiveSections";
 import { useLiveSchools } from "@/hooks/useLiveSchools";
+import { useLiveTimetable } from "@/hooks/useLiveTimetable";
+import { useLiveAttendance } from "@/hooks/useLiveAttendance";
 
 import {
   School, Search, Bell, ChevronDown, Phone, Calendar, Users, TrendingUp,
@@ -3202,11 +3204,14 @@ function SectionCapacityScreen({ students }) {
    TEACHER DASHBOARD
 --------------------------------------------------------- */
 
-function TeacherDashboard({ homeworkList, leaveRequests, attendanceRecords, todayKey, onNavigate, onOpenSection }) {
+function TeacherDashboard({ homeworkList, leaveRequests, attendanceRecords, todayKey, onNavigate, onOpenSection, timetable, sections }) {
   const pendingLeaves = leaveRequests.filter((l) => l.status === "pending");
   const upcomingHomework = [...homeworkList].sort((a, b) => a.postedDaysAgo - b.postedDaysAgo).slice(0, 4);
+  // Live rows when the school has them, mock rows otherwise.
+  const periods = timetable && timetable.length ? timetable : TEACHER_TIMETABLE;
+  const sectionList = sections && sections.length ? sections : TEACHER_SECTIONS;
 
-  const attendanceStatus = TEACHER_SECTIONS.map((sec) => {
+  const attendanceStatus = sectionList.map((sec) => {
     const key = `${sec}|${todayKey}`;
     const marked = attendanceRecords[key];
     return { section: sec, marked: !!marked, count: marked ? Object.keys(marked).length : 0 };
@@ -3216,11 +3221,11 @@ function TeacherDashboard({ homeworkList, leaveRequests, attendanceRecords, toda
     <div className="max-w-6xl">
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-slate-900 dark:text-white">Good morning, {TEACHER_NAME}</h1>
-        <p className="text-slate-500 dark:text-slate-400 text-[13.5px] mt-0.5">You have {TEACHER_TIMETABLE.length} periods today across {TEACHER_SECTIONS.length} sections</p>
+        <p className="text-slate-500 dark:text-slate-400 text-[13.5px] mt-0.5">You have {periods.length} periods today across {sectionList.length} sections</p>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <KpiCard label="Sections assigned" value={TEACHER_SECTIONS.length} icon={Layers} tint="#4F46E5" />
+        <KpiCard label="Sections assigned" value={sectionList.length} icon={Layers} tint="#4F46E5" />
         <KpiCard label="Attendance pending" value={attendanceStatus.filter((a) => !a.marked).length} icon={ClipboardCheck} tint="#D97706" />
         <KpiCard label="Homework posted" value={homeworkList.length} icon={BookOpen} tint="#0EA5A0" />
         <KpiCard label="Leave requests" value={pendingLeaves.length} sub={pendingLeaves.length ? "Needs review" : undefined} icon={AlertCircle} tint="#DC2626" />
@@ -3230,7 +3235,7 @@ function TeacherDashboard({ homeworkList, leaveRequests, attendanceRecords, toda
         <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5">
           <h3 className="font-semibold text-slate-900 dark:text-white text-[14.5px] mb-4">Today's timetable</h3>
           <div className="space-y-2">
-            {TEACHER_TIMETABLE.map((t, idx) => (
+            {periods.map((t, idx) => (
               <div key={idx} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800">
                 <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-[12px] font-semibold shrink-0">
                   {t.period}
@@ -3317,9 +3322,12 @@ function TeacherDashboard({ homeworkList, leaveRequests, attendanceRecords, toda
    ATTENDANCE SCREEN
 --------------------------------------------------------- */
 
-function AttendanceScreen({ initialSection, attendanceRecords, todayKey, onSave }) {
-  const [section, setSection] = useState(initialSection || TEACHER_SECTIONS[0]);
-  const roster = useMemo(() => makeRoster(section), [section]);
+function AttendanceScreen({ initialSection, attendanceRecords, todayKey, onSave, sections, rosters }) {
+  // Live sections/rosters when available, mock ones otherwise.
+  const sectionList = sections && sections.length ? sections : TEACHER_SECTIONS;
+  const rosterFor = (sec) => (rosters && rosters[sec] && rosters[sec].length ? rosters[sec] : makeRoster(sec));
+  const [section, setSection] = useState(initialSection || sectionList[0]);
+  const roster = useMemo(() => rosterFor(section), [section, rosters]);
   const savedKey = `${section}|${todayKey}`;
   const saved = attendanceRecords[savedKey];
 
@@ -3331,7 +3339,7 @@ function AttendanceScreen({ initialSection, attendanceRecords, todayKey, onSave 
 
   React.useEffect(() => {
     const init = {};
-    const r = makeRoster(section);
+    const r = rosterFor(section);
     const sv = attendanceRecords[`${section}|${todayKey}`];
     r.forEach((s) => { init[s.id] = sv?.[s.id] || "present"; });
     setMarks(init);
@@ -3356,7 +3364,7 @@ function AttendanceScreen({ initialSection, attendanceRecords, todayKey, onSave 
           <p className="text-slate-500 dark:text-slate-400 text-[13.5px] mt-0.5">Today, {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long" })}</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {TEACHER_SECTIONS.map((s) => (
+          {sectionList.map((s) => (
             <button
               key={s}
               onClick={() => setSection(s)}
@@ -6491,6 +6499,37 @@ export default function SchoolOS() {
   const [schoolsList, setSchoolsList] = useState(SCHOOLS);
 
   // Live schools from the database; mock rows stay as fallback.
+  // Live timetable + attendance for the signed-in school; mock rows stay as fallback.
+  const { live: liveTimetable } = useLiveTimetable(!!role);
+  const {
+    records: liveAttendanceRecords,
+    sections: liveAttendanceSections,
+    save: saveLiveAttendance,
+  } = useLiveAttendance(!!role, todayKey);
+
+  useEffect(() => {
+    if (!Object.keys(liveAttendanceRecords).length) return;
+    setAttendanceRecords((prev) => ({ ...prev, ...liveAttendanceRecords }));
+  }, [liveAttendanceRecords]);
+
+  const liveSectionLabels = liveAttendanceSections.map((s) => s.label);
+  const liveRosters = useMemo(() => {
+    const map = {};
+    for (const st of liveStudents) {
+      if (!st.classApplied || !st.section) continue;
+      const label = `${st.classApplied} - ${st.section}`;
+      (map[label] = map[label] || []).push({
+        id: st.dbId,
+        rollNumber: st.rollNumber || "-",
+        name: st.name,
+        section: label,
+        attendancePct: 0,
+        house: st.house || "-",
+      });
+    }
+    return map;
+  }, [liveStudents]);
+
   const { live: liveSchools } = useLiveSchools(!!role);
   useEffect(() => {
     if (!liveSchools.length) return;
@@ -6761,6 +6800,8 @@ export default function SchoolOS() {
 
   function saveAttendance(section, dateKey, marks) {
     setAttendanceRecords((prev) => ({ ...prev, [`${section}|${dateKey}`]: marks }));
+    // Persist to the database when this section exists there.
+    void saveLiveAttendance(section, marks);
   }
 
   function postHomework(form) {
@@ -7068,6 +7109,8 @@ export default function SchoolOS() {
           todayKey={todayKey}
           onNavigate={handleNavigate}
           onOpenSection={(sec) => { setAttendanceSection(sec); setView("attendance"); }}
+          timetable={liveTimetable}
+          sections={liveSectionLabels}
         />
       )}
       {role.id === "teacher" && view === "attendance" && (
@@ -7076,6 +7119,8 @@ export default function SchoolOS() {
           attendanceRecords={attendanceRecords}
           todayKey={todayKey}
           onSave={saveAttendance}
+          sections={liveSectionLabels}
+          rosters={liveRosters}
         />
       )}
       {role.id === "teacher" && view === "homework" && (
