@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { supabase, fetchProfile } from "../lib/supabaseClient";
 import { authService } from "@/services/auth.service";
+import { LiveChildCard } from "./LiveChildCard";
 
 /* ---------------------------------------------------------
    DEMO DATA
@@ -3999,6 +4000,7 @@ function StudentDashboard({ homeworkList, onNavigate, feeInstallments, onShowIdC
 
   return (
     <div className="max-w-6xl">
+      <LiveChildCard />
       <div className="mb-6 flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-slate-900 dark:text-white">Hi {CHILD.name.split(" ")[0]}! Ready for today?</h1>
@@ -4502,6 +4504,7 @@ function ParentDashboard({ child, children, onSwitchChild, homeworkList, feeInst
 
   return (
     <div className="max-w-6xl">
+      <LiveChildCard />
       {children.length > 1 && (
         <div className="flex gap-2 mb-4">
           {children.map((c) => (
