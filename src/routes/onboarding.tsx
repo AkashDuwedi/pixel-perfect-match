@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import * as XLSX from "xlsx";
+import { TEMPLATES, downloadAll, downloadOne, readWorkbook, validate, importTable, type TableKey } from "@/lib/schoolTemplates";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { createSchoolAdmin } from "@/lib/onboarding.functions";
@@ -21,29 +21,12 @@ export const Route = createFileRoute("/onboarding")({
 });
 
 type School = { id: string; name: string; code: string };
-type Row = Record<string, unknown>;
 
-const STUDENT_COLS = ["full_name", "admission_number", "class", "section", "roll_number", "date_of_birth", "gender", "guardian_name", "guardian_phone", "guardian_email"];
-const STAFF_COLS = ["full_name", "employee_code", "designation", "department", "subject", "phone", "email", "joining_date"];
 
 const card = "bg-card border border-border rounded-2xl p-5 mb-5";
 const input = "w-full border border-input bg-background rounded-lg px-3 py-2 text-sm";
 const btn = "bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50";
 const btn2 = "border border-border rounded-lg px-3 py-2 text-sm";
-
-const s = (v: unknown) => (v === undefined || v === null ? "" : String(v).trim());
-const norm = (r: Row) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k.toLowerCase().trim().replace(/\s+/g, "_"), v]));
-function toDate(v: unknown) {
-  if (typeof v === "number") { const d = XLSX.SSF.parse_date_code(v); return `${d.y}-${String(d.m).padStart(2, "0")}-${String(d.d).padStart(2, "0")}`; }
-  const t = s(v); return /^\d{4}-\d{2}-\d{2}$/.test(t) ? t : null;
-}
-
-function downloadTemplate(cols: string[], name: string) {
-  const ws = XLSX.utils.aoa_to_sheet([cols]);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Data");
-  XLSX.writeFile(wb, name);
-}
 
 function OnboardingPage() {
   const [role, setRole] = useState<string | null | undefined>(undefined);
@@ -86,8 +69,7 @@ function OnboardingPage() {
       </div>
 
       {schoolId && role === "superadmin" && <CreateAdmin schoolId={schoolId} />}
-      {schoolId && <Importer kind="students" schoolId={schoolId} />}
-      {schoolId && <Importer kind="staff" schoolId={schoolId} />}
+      {schoolId && <DataImport schoolId={schoolId} />}
     </div>
   );
 }
@@ -156,107 +138,61 @@ function CreateAdmin({ schoolId }: { schoolId: string }) {
   );
 }
 
-function Importer({ kind, schoolId }: { kind: "students" | "staff"; schoolId: string }) {
-  const cols = kind === "students" ? STUDENT_COLS : STAFF_COLS;
-  const [rows, setRows] = useState<Row[]>([]);
-  const [msg, setMsg] = useState("");
+function DataImport({ schoolId }: { schoolId: string }) {
+  const [data, setData] = useState<Partial<Record<TableKey, Record<string, unknown>[]>>>({});
+  const [log, setLog] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const errors = TEMPLATES.flatMap((t) => (data[t.key] ? validate(t.key, data[t.key]!) : []));
+  const loaded = TEMPLATES.filter((t) => data[t.key]?.length);
 
-  async function onFile(file: File) {
-    const wb = XLSX.read(await file.arrayBuffer());
-    const data = XLSX.utils.sheet_to_json<Row>(wb.Sheets[wb.SheetNames[0]], { defval: "" }).map(norm);
-    setRows(data); setMsg(`${data.length} rows ready to import`);
+  async function onFile(file: File, only?: TableKey) {
+    const parsed = await readWorkbook(file, only);
+    setData((d) => ({ ...d, ...parsed })); setLog([]);
   }
-  const problems = rows.map((r, i) => {
-    if (!s(r.full_name)) return `Row ${i + 2}: missing full_name`;
-    if (kind === "students" && !s(r.admission_number)) return `Row ${i + 2}: missing admission_number`;
-    if (kind === "staff" && !s(r.employee_code)) return `Row ${i + 2}: missing employee_code`;
-    return null;
-  }).filter(Boolean) as string[];
-
   async function run() {
-    setBusy(true); setMsg("Importing…");
-    try {
-      if (kind === "staff") {
-        const payload = rows.map((r) => ({
-          school_id: schoolId, full_name: s(r.full_name), employee_code: s(r.employee_code),
-          designation: s(r.designation) || null, department: s(r.department) || null, subject: s(r.subject) || null,
-          phone: s(r.phone) || null, email: s(r.email) || null, joining_date: toDate(r.joining_date),
-        }));
-        const { error } = await supabase.from("staff").insert(payload);
-        if (error) throw error;
-        setMsg(`Imported ${payload.length} staff ✓`);
-      } else {
-        // Ensure classes & sections exist
-        const { data: cls } = await supabase.from("classes").select("id,name").eq("school_id", schoolId);
-        const classMap = new Map((cls ?? []).map((c) => [c.name.toLowerCase(), c.id]));
-        for (const name of new Set(rows.map((r) => s(r.class)).filter(Boolean))) {
-          if (classMap.has(name.toLowerCase())) continue;
-          const g = parseInt(name.replace(/\D/g, ""), 10);
-          const { data, error } = await supabase.from("classes").insert({ school_id: schoolId, name, grade_level: isNaN(g) ? null : g }).select("id").single();
-          if (error) throw error;
-          classMap.set(name.toLowerCase(), data.id);
-        }
-        const { data: secs } = await supabase.from("sections").select("id,name,class_id").eq("school_id", schoolId);
-        const secMap = new Map((secs ?? []).map((x) => [`${x.class_id}|${x.name.toLowerCase()}`, x.id]));
-        for (const r of rows) {
-          const cid = classMap.get(s(r.class).toLowerCase()); const sn = s(r.section);
-          if (!cid || !sn || secMap.has(`${cid}|${sn.toLowerCase()}`)) continue;
-          const { data, error } = await supabase.from("sections").insert({ school_id: schoolId, class_id: cid, name: sn }).select("id").single();
-          if (error) throw error;
-          secMap.set(`${cid}|${sn.toLowerCase()}`, data.id);
-        }
-        const payload = rows.map((r) => {
-          const cid = classMap.get(s(r.class).toLowerCase()) ?? null;
-          return {
-            school_id: schoolId, full_name: s(r.full_name), admission_number: s(r.admission_number),
-            class_id: cid, section_id: cid ? secMap.get(`${cid}|${s(r.section).toLowerCase()}`) ?? null : null,
-            roll_number: s(r.roll_number) || null, date_of_birth: toDate(r.date_of_birth), gender: s(r.gender) || null,
-          };
-        });
-        const { data: inserted, error } = await supabase.from("students").insert(payload).select("id,admission_number");
-        if (error) throw error;
-        // Guardians
-        const idByAdm = new Map((inserted ?? []).map((x) => [x.admission_number, x.id]));
-        let g = 0;
-        for (const r of rows) {
-          if (!s(r.guardian_name)) continue;
-          const { data: gd, error: ge } = await supabase.from("guardians").insert({ school_id: schoolId, full_name: s(r.guardian_name), phone: s(r.guardian_phone) || null, email: s(r.guardian_email) || null }).select("id").single();
-          if (ge) throw ge;
-          const sid = idByAdm.get(s(r.admission_number));
-          if (sid) await supabase.from("student_guardians").insert({ student_id: sid, guardian_id: gd.id, is_primary: true });
-          g++;
-        }
-        setMsg(`Imported ${payload.length} students and ${g} guardians ✓`);
-      }
-      setRows([]);
-    } catch (e) {
-      setMsg(`Import failed: ${(e as { message?: string }).message ?? e}. Nothing after the failing step was saved.`);
+    setBusy(true); const out: string[] = [];
+    for (const t of loaded) {
+      try { const c = await importTable(t.key, data[t.key]!, schoolId); out.push(`✓ ${t.label}: ${c} rows`); }
+      catch (e) { out.push(`✗ ${t.label}: ${(e as Error).message}. Stopped here — earlier tables were saved.`); break; }
+      setLog([...out]);
     }
-    setBusy(false);
+    setLog(out); setBusy(false);
+    if (!out.some((x) => x.startsWith("✗"))) setData({});
   }
 
   return (
     <div className={card}>
-      <h2 className="font-semibold mb-1">Step 3 — Import {kind} from Excel</h2>
-      <p className="text-xs text-muted-foreground mb-3">Columns: {cols.join(", ")}. Dates as YYYY-MM-DD.</p>
-      <div className="flex flex-wrap gap-2 items-center">
-        <button className={btn2} onClick={() => downloadTemplate(cols, `${kind}-template.xlsx`)}>Download template</button>
-        <input type="file" accept=".xlsx,.xls,.csv" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} className="text-sm" />
+      <h2 className="font-semibold mb-1">Step 3 — Import school data from Excel</h2>
+      <p className="text-xs text-muted-foreground mb-3">Every template matches a table in the system. Download the full workbook (one sheet per table), fill it, and upload it — all tables are filled in the right order. Or use single-table templates below.</p>
+      <div className="flex flex-wrap gap-2 items-center mb-4">
+        <button className={btn} onClick={downloadAll}>Download full workbook</button>
+        <label className={btn2 + " cursor-pointer"}>Upload filled workbook
+          <input type="file" hidden accept=".xlsx,.xls" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ""; }} />
+        </label>
       </div>
-      {rows.length > 0 && (
-        <>
-          <div className="overflow-x-auto mt-3 border border-border rounded-lg max-h-64">
-            <table className="text-xs w-full">
-              <thead className="bg-muted"><tr>{cols.map((c) => <th key={c} className="px-2 py-1 text-left">{c}</th>)}</tr></thead>
-              <tbody>{rows.slice(0, 20).map((r, i) => <tr key={i} className="border-t border-border">{cols.map((c) => <td key={c} className="px-2 py-1">{s(r[c])}</td>)}</tr>)}</tbody>
-            </table>
+      <div className="border border-border rounded-lg divide-y divide-border">
+        {TEMPLATES.map((t, i) => (
+          <div key={t.key} className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
+            <span className="w-6 text-muted-foreground">{i + 1}.</span>
+            <div className="flex-1 min-w-40">
+              <div className="font-medium">{t.label}</div>
+              <div className="text-xs text-muted-foreground">{t.columns.join(", ")}</div>
+            </div>
+            {data[t.key] && <span className="text-xs text-primary">{data[t.key]!.length} rows ready</span>}
+            <button className={btn2} onClick={() => downloadOne(t.key)}>Template</button>
+            <label className={btn2 + " cursor-pointer"}>Upload
+              <input type="file" hidden accept=".xlsx,.xls,.csv" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f, t.key); e.target.value = ""; }} />
+            </label>
           </div>
-          {problems.length > 0 && <ul className="text-xs text-destructive mt-2">{problems.slice(0, 10).map((p) => <li key={p}>{p}</li>)}</ul>}
-          <button className={`${btn} mt-3`} disabled={busy || problems.length > 0} onClick={run}>Import {rows.length} {kind}</button>
-        </>
+        ))}
+      </div>
+      {errors.length > 0 && <ul className="text-xs text-destructive mt-3">{errors.slice(0, 10).map((p) => <li key={p}>{p}</li>)}</ul>}
+      {loaded.length > 0 && (
+        <button className={`${btn} mt-3`} disabled={busy || errors.length > 0} onClick={run}>
+          {busy ? "Importing…" : `Import ${loaded.map((t) => t.label).join(", ")}`}
+        </button>
       )}
-      {msg && <p className="text-sm text-muted-foreground mt-2">{msg}</p>}
+      {log.length > 0 && <ul className="text-sm mt-3 space-y-1">{log.map((l) => <li key={l} className={l.startsWith("✗") ? "text-destructive" : ""}>{l}</li>)}</ul>}
     </div>
   );
 }
