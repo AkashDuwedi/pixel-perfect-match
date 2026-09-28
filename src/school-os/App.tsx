@@ -7215,7 +7215,7 @@ export default function SchoolOS() {
           schools={schoolsList}
           schoolPlans={schoolPlans}
           onOpenSchool={(s) => setOpenSchoolId(s.id)}
-          onAddSchool={() => setShowAddSchool(true)}
+          onAddSchool={() => { window.location.href = "/onboarding"; }}
           onActivateSchool={activateSchool}
         />
       )}
