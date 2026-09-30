@@ -803,7 +803,10 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"]
       }
       get_my_school_id: { Args: never; Returns: string }
+      has_permission: { Args: { _key: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
+      is_family_role: { Args: never; Returns: boolean }
+      my_student_ids: { Args: never; Returns: string[] }
     }
     Enums: {
       app_role:
