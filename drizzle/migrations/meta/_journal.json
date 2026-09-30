@@ -8,6 +8,13 @@
       "when": 1790775875226,
       "tag": "0000_role_based_access",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790775905094,
+      "tag": "0001_guardians_family_scope",
+      "breakpoints": true
     }
   ]
 }
