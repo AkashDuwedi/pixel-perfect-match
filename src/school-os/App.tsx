@@ -24,6 +24,7 @@ import {
 import { supabase, fetchProfile } from "../lib/supabaseClient";
 import { authService } from "@/services/auth.service";
 import { LiveChildCard } from "./LiveChildCard";
+import { canView, filterNav, EXTRA_NAV, AccessDenied, RoleWorkspace } from "./rbac";
 
 /* ---------------------------------------------------------
    DEMO DATA
@@ -6412,6 +6413,14 @@ export default function SchoolOS() {
   const [school, setSchool] = useState(null);
   const [role, setRole] = useState(null);
   const [view, setView] = useState("dashboard");
+  const [perms, setPerms] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    setPerms(null);
+    if (!role?.id) return;
+    authService.getPermissions(role.id).then((p) => { if (!cancelled) setPerms(p.length ? p : null); });
+    return () => { cancelled = true; };
+  }, [role?.id]);
   const [inquiries, setInquiries] = useState(makeInquiries);
   const [students, setStudents] = useState(() => deriveEnrolledStudents(inquiries));
 
@@ -7042,7 +7051,8 @@ export default function SchoolOS() {
     );
   }
 
-  const navItems = NAV_CONFIG[role.id] || [{ id: "dashboard", label: "Dashboard", icon: LayoutGrid }];
+  const navItems = filterNav(NAV_CONFIG[role.id] || EXTRA_NAV[role.id] || [{ id: "dashboard", label: "Dashboard", icon: LayoutGrid }], perms);
+  const viewAllowed = canView(view, perms);
   const personName = PERSON_NAMES[role.id] || role.label;
 
   return (
@@ -7062,6 +7072,7 @@ export default function SchoolOS() {
       notifications={notifications}
       onSelectNotification={handleNotificationSelect}
     >
+      {!viewAllowed ? <AccessDenied onBack={() => setView("dashboard")} /> : (<>
       {role.id === "counselor" && view === "dashboard" && (
         <CounselorDashboard
           inquiries={inquiries}
@@ -7301,6 +7312,8 @@ export default function SchoolOS() {
           onMarkInvoicePaid={markInvoicePaid}
         />
       )}
+      {EXTRA_NAV[role.id] && <RoleWorkspace roleLabel={role.label} view={view} perms={perms} />}
+      </>)}
       {showAddSchool && (
         <AddSchoolModal onClose={() => setShowAddSchool(false)} onCreate={createSchool} />
       )}
