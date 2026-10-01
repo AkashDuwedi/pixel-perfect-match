@@ -1,7 +1,7 @@
 // Access & Logins: school admins invite staff, parents and students by email.
 // Each invite creates the auth user (the signup trigger builds the profile from
 // metadata) and links it to the matching staff/guardian/student row.
-import { createServerFn, getRequestHeader } from "@tanstack/react-start";
+import { createServerFn, getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
