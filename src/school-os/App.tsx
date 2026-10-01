@@ -6182,11 +6182,13 @@ const NAV_CONFIG = {
     { id: "hostel", label: "Hostel", icon: BedDouble },
     { id: "fees", label: "Fee Structure", icon: IndianRupee },
     { id: "notices", label: "Notices", icon: Megaphone },
+    { id: "access", label: "Access & Logins", icon: KeyRound },
     { id: "settings", label: "School Settings", icon: Settings },
   ],
   superadmin: [
     { id: "dashboard", label: "Platform Overview", icon: Building2 },
     { id: "billing", label: "Billing & Plans", icon: CreditCard },
+    { id: "access", label: "Access & Logins", icon: KeyRound },
   ],
 };
 
@@ -7240,6 +7242,13 @@ export default function SchoolOS() {
           onMarkInvoicePaid={markInvoicePaid}
         />
       )}
+      {role.id === "superadmin" && view === "access" && (
+        <AccessScreen
+          schoolId={displaySchool?.id ?? null}
+          schools={schoolsList.map((s: any) => ({ id: s.id, name: s.name, code: s.code }))}
+          isSuperadmin
+        />
+      )}
 
       {role.id === "admin" && view === "dashboard" && (
         <SchoolAdminDashboard school={displaySchool} staff={staffList} notices={schoolNotices} onNavigate={handleNavigate} sections={liveSections} />
@@ -7259,6 +7268,9 @@ export default function SchoolOS() {
       )}
       {role.id === "admin" && view === "notices" && (
         <NoticesComposerScreen notices={schoolNotices} onPost={postNotice} />
+      )}
+      {role.id === "admin" && view === "access" && (
+        <AccessScreen schoolId={displaySchool?.id ?? null} />
       )}
       {role.id === "admin" && view === "settings" && <SchoolSettingsScreen school={displaySchool} onUpdateBranding={updateSchoolBranding} />}
 
