@@ -19,7 +19,7 @@ import {
   AlertTriangle, ArrowRightLeft, TrendingDown, BarChart3, Megaphone, ShieldCheck,
   Briefcase, Palette, PlusCircle, Edit3, History, Sun, Moon, Menu,
   Monitor, Microscope, Utensils, Quote, Building, BedDouble, Route as RouteIcon, Image as ImageIcon,
-  Paperclip, Smartphone, Loader2, Landmark, Share2, QrCode, Printer, IdCard, Download, Sparkles
+  Paperclip, Smartphone, Loader2, Landmark, Share2, QrCode, Printer, IdCard, Download, Sparkles, KeyRound
 } from "lucide-react";
 import { supabase, fetchProfile } from "../lib/supabaseClient";
 import { authService } from "@/services/auth.service";
