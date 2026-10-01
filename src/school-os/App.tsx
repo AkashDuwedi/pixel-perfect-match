@@ -24,6 +24,7 @@ import {
 import { supabase, fetchProfile } from "../lib/supabaseClient";
 import { authService } from "@/services/auth.service";
 import { LiveChildCard } from "./LiveChildCard";
+import { AccessScreen } from "./AccessScreen";
 import { canView, filterNav, EXTRA_NAV, AccessDenied, RoleWorkspace } from "./rbac";
 
 /* ---------------------------------------------------------
