@@ -15,6 +15,7 @@ export const VIEW_PERMISSIONS: Record<string, string> = {
   students: "students.read",
   strength: "students.read",
   risk: "students.read",
+  access: "settings.write",
   settings: "settings.write",
   transport: "settings.write",
   hostel: "settings.write",
