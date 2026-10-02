@@ -5467,7 +5467,7 @@ function SchoolAdminDashboard({ school, staff, notices, onNavigate, sections }) 
     <div className="max-w-6xl">
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-slate-900 dark:text-white">School Admin Dashboard</h1>
-        <p className="text-slate-500 dark:text-slate-400 text-[13.5px] mt-0.5">{school.name}</p>
+        <p className="text-slate-500 dark:text-slate-400 text-[13.5px] mt-0.5">{school?.name ?? "Loading school…"}</p>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
