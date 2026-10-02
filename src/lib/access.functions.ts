@@ -1,7 +1,7 @@
 // Access & Logins: school admins invite staff, parents and students by email.
 // Each invite creates the auth user (the signup trigger builds the profile from
 // metadata) and links it to the matching staff/guardian/student row.
-import { createServerFn, getRequestHeader } from "@tanstack/react-start/server";
+import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
@@ -161,6 +161,7 @@ export const inviteLogin = createServerFn({ method: "POST" })
     if (clash) throw new Error("An account with this email already exists. Use a different email.");
 
     // The set-password link should land on the same site the invite was sent from.
+    const { getRequestHeader } = await import("@tanstack/react-start/server");
     const origin = getRequestHeader("origin") || undefined;
 
     const { data: invited, error: invErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
