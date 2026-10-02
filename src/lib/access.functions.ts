@@ -158,7 +158,10 @@ export const inviteLogin = createServerFn({ method: "POST" })
     const clash = listed.users.find(
       (u) => (u.email ?? "").toLowerCase() === data.email.toLowerCase(),
     );
-    if (clash) throw new Error("An account with this email already exists. Use a different email.");
+    if (clash)
+      throw new Error(
+        `No email sent — ${data.email} already has a login in Vedaalay (another role is using it). Please use a different email address.`,
+      );
 
     // The set-password link should land on the same site the invite was sent from.
     const { getRequestHeader } = await import("@tanstack/react-start/server");
