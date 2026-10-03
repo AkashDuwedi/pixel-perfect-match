@@ -15,6 +15,13 @@
       "when": 1790775905094,
       "tag": "0001_guardians_family_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791004820974,
+      "tag": "0002_sections_class_teacher_staff",
+      "breakpoints": true
     }
   ]
 }
