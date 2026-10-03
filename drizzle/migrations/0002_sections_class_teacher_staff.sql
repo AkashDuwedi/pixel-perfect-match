@@ -1,0 +1,1 @@
+ALTER TABLE public.sections ADD COLUMN IF NOT EXISTS class_teacher_staff_id uuid REFERENCES public.staff(id) ON DELETE SET NULL;

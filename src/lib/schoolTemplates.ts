@@ -11,9 +11,9 @@ export type TableKey =
 
 export const TEMPLATES: { key: TableKey; label: string; required: string[]; columns: string[] }[] = [
   { key: "classes", label: "Classes", required: ["name"], columns: ["name", "grade_level"] },
-  { key: "sections", label: "Sections", required: ["class_name", "name"], columns: ["class_name", "name", "capacity"] },
-  { key: "subjects", label: "Subjects", required: ["name"], columns: ["class_name", "name", "code"] },
   { key: "staff", label: "Staff", required: ["employee_code", "full_name"], columns: ["employee_code", "full_name", "designation", "department", "subject", "phone", "email", "joining_date", "status"] },
+  { key: "sections", label: "Sections", required: ["class_name", "name"], columns: ["class_name", "name", "capacity", "class_teacher_employee_code"] },
+  { key: "subjects", label: "Subjects", required: ["name"], columns: ["class_name", "name", "code"] },
   { key: "students", label: "Students", required: ["admission_number", "full_name"], columns: ["admission_number", "full_name", "class_name", "section_name", "roll_number", "date_of_birth", "gender", "house", "bus_route", "status"] },
   { key: "guardians", label: "Guardians", required: ["full_name"], columns: ["full_name", "phone", "email", "relation", "student_admission_number", "is_primary"] },
   { key: "teacher_assignments", label: "Teacher assignments", required: ["employee_code", "subject_name", "class_name", "section_name"], columns: ["employee_code", "subject_name", "class_name", "section_name"] },
@@ -23,7 +23,7 @@ export const TEMPLATES: { key: TableKey; label: string; required: string[]; colu
 
 const SAMPLE: Record<TableKey, unknown[]> = {
   classes: ["Class 1", 1],
-  sections: ["Class 1", "A", 40],
+  sections: ["Class 1", "A", 40, "EMP001"],
   subjects: ["Class 1", "Mathematics", "MATH1"],
   staff: ["EMP001", "Priya Verma", "Teacher", "Academics", "Mathematics", "9876543210", "priya@school.in", "2024-04-01", "active"],
   students: ["ADM001", "Aarav Sharma", "Class 1", "A", "1", "2018-05-12", "Male", "Blue", "Route 3", "active"],
@@ -61,7 +61,7 @@ export function downloadAll() {
   const help = XLSX.utils.aoa_to_sheet([
     ["How to use"],
     ["Each sheet matches one table. Keep the header row and sheet names unchanged. Delete the example row."],
-    ["Fill in order: classes → sections → subjects → staff → students → guardians → teacher_assignments → timetable_slots → attendance."],
+    ["Fill in order: classes → staff → sections → subjects → students → guardians → teacher_assignments → timetable_slots → attendance."],
     ["Dates: YYYY-MM-DD. Times: HH:MM. weekday: 1=Mon … 6=Sat. Attendance status: present / absent / late / leave."],
   ]);
   XLSX.utils.book_append_sheet(wb, help, "README");
@@ -123,7 +123,7 @@ export async function importTable(key: TableKey, rows: Row[], schoolId: string):
   };
   switch (key) {
     case "classes": return ins("classes", rows.map((r) => ({ school_id: S, name: s(r.name), grade_level: n(r.grade_level) ?? n(s(r.name).replace(/\D/g, "")) })));
-    case "sections": return ins("sections", rows.map((r, i) => ({ school_id: S, class_id: need(L.classId(r), `sections row ${i + 2}: class "${s(r.class_name)}" not found`), name: s(r.name), ...(n(r.capacity) ? { capacity: n(r.capacity) } : {}) })));
+    case "sections": return ins("sections", rows.map((r, i) => ({ school_id: S, class_id: need(L.classId(r), `sections row ${i + 2}: class "${s(r.class_name)}" not found`), name: s(r.name), ...(n(r.capacity) ? { capacity: n(r.capacity) } : {}), class_teacher_staff_id: s(r.class_teacher_employee_code) ? need(L.staffId({ employee_code: r.class_teacher_employee_code }), `sections row ${i + 2}: class teacher "${s(r.class_teacher_employee_code)}" not found in Staff`) : null })));
     case "subjects": return ins("subjects", rows.map((r) => ({ school_id: S, class_id: L.classId(r), name: s(r.name), code: s(r.code) || null })));
     case "staff": return ins("staff", rows.map((r) => ({ school_id: S, employee_code: s(r.employee_code), full_name: s(r.full_name), designation: s(r.designation) || null, department: s(r.department) || null, subject: s(r.subject) || null, phone: s(r.phone) || null, email: s(r.email) || null, joining_date: date(r.joining_date), ...(s(r.status) ? { status: s(r.status).toLowerCase() } : {}) })));
     case "students": return ins("students", rows.map((r) => ({ school_id: S, admission_number: s(r.admission_number), full_name: s(r.full_name), class_id: L.classId(r), section_id: L.sectionId(r), roll_number: s(r.roll_number) || null, date_of_birth: date(r.date_of_birth), gender: s(r.gender) || null, house: s(r.house) || null, bus_route: s(r.bus_route) || null, ...(s(r.status) ? { status: s(r.status).toLowerCase() } : {}) })));

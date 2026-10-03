@@ -351,6 +351,7 @@ export type Database = {
           capacity: number
           class_id: string
           class_teacher_id: string | null
+          class_teacher_staff_id: string | null
           created_at: string
           id: string
           name: string
@@ -361,6 +362,7 @@ export type Database = {
           capacity?: number
           class_id: string
           class_teacher_id?: string | null
+          class_teacher_staff_id?: string | null
           created_at?: string
           id?: string
           name: string
@@ -371,6 +373,7 @@ export type Database = {
           capacity?: number
           class_id?: string
           class_teacher_id?: string | null
+          class_teacher_staff_id?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -390,6 +393,13 @@ export type Database = {
             columns: ["class_teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sections_class_teacher_staff_id_fkey"
+            columns: ["class_teacher_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
