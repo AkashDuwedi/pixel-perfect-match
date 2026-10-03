@@ -187,3 +187,27 @@ export const inviteLogin = createServerFn({ method: "POST" })
 
     return { userId: invited.user.id, role: appRole };
   });
+
+// Re-send a set-password email to someone who already has a login.
+export const resendLoginEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ profileId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: myRole } = await context.supabase.rpc("get_my_role");
+    if (myRole !== "admin" && myRole !== "superadmin")
+      throw new Error("Only school admins can resend login emails.");
+    const { data: prof, error } = await context.supabase
+      .from("profiles")
+      .select("email")
+      .eq("id", data.profileId)
+      .maybeSingle();
+    if (error || !prof?.email) throw new Error("Login not found in your school.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { getRequestHeader } = await import("@tanstack/react-start/server");
+    const origin = getRequestHeader("origin") || undefined;
+    const { error: e2 } = await supabaseAdmin.auth.resetPasswordForEmail(prof.email, {
+      ...(origin ? { redirectTo: `${origin}/reset-password` } : {}),
+    });
+    if (e2) throw new Error(e2.message);
+    return { email: prof.email };
+  });

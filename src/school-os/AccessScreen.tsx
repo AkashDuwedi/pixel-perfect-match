@@ -4,7 +4,7 @@
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { KeyRound, MailCheck, RefreshCw } from "lucide-react";
-import { getAccessOverview, inviteLogin, type AccessPerson } from "@/lib/access.functions";
+import { getAccessOverview, inviteLogin, resendLoginEmail, type AccessPerson } from "@/lib/access.functions";
 
 const STAFF_ROLE_OPTIONS = [
   { value: "principal", label: "Principal" },
@@ -34,6 +34,7 @@ export function AccessScreen({
 }) {
   const fetchOverview = useServerFn(getAccessOverview);
   const inviteFn = useServerFn(inviteLogin);
+  const resendFn = useServerFn(resendLoginEmail);
 
   const [overview, setOverview] = useState<Awaited<ReturnType<typeof getAccessOverview>> | null>(null);
   const [error, setError] = useState("");
@@ -84,6 +85,18 @@ export function AccessScreen({
     setBusyId(null);
   }
 
+  async function resend(p: AccessPerson) {
+    if (!p.profileId) return;
+    setBusyId(p.id);
+    try {
+      const r = await resendFn({ data: { profileId: p.profileId } });
+      setLog((l) => [`✓ ${p.name} — login email re-sent to ${r.email}`, ...l]);
+    } catch (e) {
+      setLog((l) => [`✗ ${p.name}: ${(e as Error).message}`, ...l]);
+    }
+    setBusyId(null);
+  }
+
   async function inviteAll(rows: AccessPerson[], kind: Group) {
     const targets = rows.filter((r) => !r.profileId && (emails[r.id] ?? r.email ?? "").trim());
     if (targets.length === 0) { setLog((l) => ["Nothing to invite — add emails first", ...l]); return; }
@@ -105,7 +118,10 @@ export function AccessScreen({
       </div>
       {extra}
       {p.profileId ? (
-        <span className="text-xs text-muted-foreground inline-flex items-center gap-1"><MailCheck size={14} /> {p.email}</span>
+        <span className="text-xs text-muted-foreground inline-flex items-center gap-1"><MailCheck size={14} /> {p.email}
+          <button className={btn2 + " ml-2"} disabled={busyId === p.id} onClick={() => resend(p)}>
+            {busyId === p.id ? "Sending…" : "Resend email"}
+          </button></span>
       ) : (
         <>
           <input
