@@ -61,7 +61,7 @@ export function downloadAll() {
   const help = XLSX.utils.aoa_to_sheet([
     ["How to use"],
     ["Each sheet matches one table. Keep the header row and sheet names unchanged. Delete the example row."],
-    ["Fill in order: classes → sections → subjects → staff → students → guardians → teacher_assignments → timetable_slots → attendance."],
+    ["Fill in order: classes → staff → sections → subjects → students → guardians → teacher_assignments → timetable_slots → attendance."],
     ["Dates: YYYY-MM-DD. Times: HH:MM. weekday: 1=Mon … 6=Sat. Attendance status: present / absent / late / leave."],
   ]);
   XLSX.utils.book_append_sheet(wb, help, "README");
