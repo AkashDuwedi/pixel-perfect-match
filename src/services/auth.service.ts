@@ -75,6 +75,21 @@ export const authService = {
       return { profile: null, error: "This account isn't linked to that school." };
     }
 
+    if (profile.role !== "superadmin" && profile.school_id) {
+      const { data: school } = await supabase
+        .from("schools")
+        .select("is_active")
+        .eq("id", profile.school_id)
+        .maybeSingle();
+      if (!school || school.is_active === false) {
+        await authService.signOut();
+        return {
+          profile: null,
+          error: "Your school is currently offline. Please contact your school or Vedaalay support.",
+        };
+      }
+    }
+
     return { profile, error: null };
   },
 

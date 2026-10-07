@@ -25,6 +25,8 @@ import { supabase, fetchProfile } from "../lib/supabaseClient";
 import { authService } from "@/services/auth.service";
 import { LiveChildCard } from "./LiveChildCard";
 import { AccessScreen } from "./AccessScreen";
+import { SchoolControlScreen } from "./SchoolControlScreen";
+import { Power } from "lucide-react";
 import { canView, filterNav, EXTRA_NAV, AccessDenied, RoleWorkspace } from "./rbac";
 
 /* ---------------------------------------------------------
@@ -6189,6 +6191,7 @@ const NAV_CONFIG = {
     { id: "dashboard", label: "Platform Overview", icon: Building2 },
     { id: "billing", label: "Billing & Plans", icon: CreditCard },
     { id: "access", label: "Access & Logins", icon: KeyRound },
+    { id: "manage-schools", label: "Manage Schools", icon: Power },
   ],
 };
 
@@ -7242,6 +7245,7 @@ export default function SchoolOS() {
           onMarkInvoicePaid={markInvoicePaid}
         />
       )}
+      {role.id === "superadmin" && view === "manage-schools" && <SchoolControlScreen />}
       {role.id === "superadmin" && view === "access" && (
         <AccessScreen
           schoolId={displaySchool?.id ?? null}
