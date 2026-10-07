@@ -462,3 +462,35 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ============================================================
+ * Modern polish layer — headings, motion, surfaces
+ * ============================================================ */
+@layer base {
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+  body {
+    background-image:
+      radial-gradient(60rem 30rem at 100% -10%, color-mix(in oklab, var(--color-indigo-200) 35%, transparent), transparent 70%),
+      radial-gradient(40rem 25rem at -10% 110%, color-mix(in oklab, var(--color-amber-400) 14%, transparent), transparent 70%);
+    background-attachment: fixed;
+  }
+  button, a, [role="button"] {
+    transition: background-color .2s var(--ease-emphasized), color .2s var(--ease-emphasized),
+      box-shadow .2s var(--ease-emphasized), transform .15s var(--ease-emphasized), border-color .2s;
+  }
+  button:not(:disabled):active { transform: scale(0.97); }
+  main > * , main > div > * { animation: rise-in .45s var(--ease-emphasized) both; }
+  main > div > *:nth-child(2) { animation-delay: .05s; }
+  main > div > *:nth-child(3) { animation-delay: .1s; }
+  main > div > *:nth-child(4) { animation-delay: .15s; }
+  main > div > *:nth-child(n+5) { animation-delay: .2s; }
+  .rounded-2xl, .rounded-xl {
+    transition: box-shadow .25s var(--ease-emphasized), transform .25s var(--ease-emphasized);
+  }
+  .rounded-2xl.border:hover { box-shadow: var(--elevation-3); }
+  .bg-indigo-600 { background-image: var(--brand-gradient); background-size: 160% 160%; }
+  .bg-indigo-600:hover { background-position: 100% 50%; box-shadow: 0 8px 24px -8px oklch(0.52 0.235 275 / .55); }
+}
