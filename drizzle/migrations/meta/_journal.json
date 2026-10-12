@@ -29,6 +29,13 @@
       "when": 1791004945405,
       "tag": "0003_offline_school_blocks_access",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791814342651,
+      "tag": "0004_fee_invoices",
+      "breakpoints": true
     }
   ]
 }
