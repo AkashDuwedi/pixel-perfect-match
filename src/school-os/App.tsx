@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { supabase, fetchProfile } from "../lib/supabaseClient";
 import { authService } from "@/services/auth.service";
+import { LiveFeesScreen } from "./LiveFeesScreen";
 import { LiveChildCard } from "./LiveChildCard";
 import { AccessScreen } from "./AccessScreen";
 import { SchoolControlScreen } from "./SchoolControlScreen";
@@ -7167,7 +7168,7 @@ export default function SchoolOS() {
       )}
       {role.id === "student" && view === "results" && <StudentResultsScreen examMarks={examMarks} child={CHILD} />}
       {role.id === "student" && view === "fees" && (
-        <FeesScreen installments={feeInstallmentsByChild[CHILD.id]} onPay={() => {}} canPay={false} child={CHILD} />
+        <><FeesScreen installments={feeInstallmentsByChild[CHILD.id]} onPay={() => {}} canPay={false} child={CHILD} /><LiveFeesScreen canCollect={false} /></>
       )}
       {role.id === "student" && view === "campus" && <CampusLifeScreen />}
       {role.id === "student" && view === "timeline" && (
@@ -7193,7 +7194,7 @@ export default function SchoolOS() {
         />
       )}
       {role.id === "parent" && view === "fees" && (
-        <FeesScreen installments={feeInstallmentsByChild[selectedChild.id]} onPay={(id) => payFee(selectedChild.id, id)} canPay={true} child={selectedChild} />
+        <><FeesScreen installments={feeInstallmentsByChild[selectedChild.id]} onPay={(id) => payFee(selectedChild.id, id)} canPay={true} child={selectedChild} /><LiveFeesScreen canCollect={false} /></>
       )}
       {role.id === "parent" && view === "messages" && (
         <ParentMessagesScreen messages={messages} onSend={sendMessage} />
@@ -7219,7 +7220,7 @@ export default function SchoolOS() {
       {role.id === "principal" && view === "dashboard" && (
         <PrincipalDashboard inquiries={inquiries} students={students} school={displaySchool} onNavigate={handleNavigate} />
       )}
-      {role.id === "principal" && view === "fees" && <FeeCollectionScreen />}
+      {role.id === "principal" && view === "fees" && <><FeeCollectionScreen /><LiveFeesScreen canCollect={true} /></>}
       {role.id === "principal" && view === "strength" && <StudentStrengthScreen />}
       {role.id === "principal" && view === "teachers" && <TeacherPerformanceScreen />}
       {role.id === "principal" && view === "risk" && <RiskStudentsScreen onOpenTimeline={viewRiskTimeline} />}
@@ -7268,7 +7269,7 @@ export default function SchoolOS() {
         <HostelScreen blocks={hostelBlocks} onAddBlock={addHostelBlock} />
       )}
       {role.id === "admin" && view === "fees" && (
-        <FeeStructureScreen feeHeads={feeHeads} onUpdate={updateFeeHead} />
+        <><FeeStructureScreen feeHeads={feeHeads} onUpdate={updateFeeHead} /><LiveFeesScreen canCollect={true} /></>
       )}
       {role.id === "admin" && view === "notices" && (
         <NoticesComposerScreen notices={schoolNotices} onPost={postNotice} />
