@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 type Row = Record<string, unknown>;
 export type TableKey =
   | "classes" | "sections" | "subjects" | "staff" | "students"
-  | "guardians" | "teacher_assignments" | "timetable_slots" | "attendance";
+  | "guardians" | "teacher_assignments" | "timetable_slots" | "attendance" | "fee_invoices";
 
 export const TEMPLATES: { key: TableKey; label: string; required: string[]; columns: string[] }[] = [
   { key: "classes", label: "Classes", required: ["name"], columns: ["name", "grade_level"] },
@@ -19,6 +19,7 @@ export const TEMPLATES: { key: TableKey; label: string; required: string[]; colu
   { key: "teacher_assignments", label: "Teacher assignments", required: ["employee_code", "subject_name", "class_name", "section_name"], columns: ["employee_code", "subject_name", "class_name", "section_name"] },
   { key: "timetable_slots", label: "Timetable", required: ["class_name", "section_name", "weekday", "period_no"], columns: ["class_name", "section_name", "weekday", "period_no", "start_time", "end_time", "subject_name", "employee_code", "room"] },
   { key: "attendance", label: "Attendance", required: ["admission_number", "date", "status"], columns: ["admission_number", "date", "status", "remarks"] },
+  { key: "fee_invoices", label: "Fees", required: ["admission_number", "title", "amount"], columns: ["admission_number", "title", "amount", "due_date", "status", "paid_amount", "paid_on", "receipt_no"] },
 ];
 
 const SAMPLE: Record<TableKey, unknown[]> = {
@@ -31,6 +32,7 @@ const SAMPLE: Record<TableKey, unknown[]> = {
   teacher_assignments: ["EMP001", "Mathematics", "Class 1", "A"],
   timetable_slots: ["Class 1", "A", 1, 1, "08:00", "08:45", "Mathematics", "EMP001", "R-101"],
   attendance: ["ADM001", "2026-09-28", "present", ""],
+  fee_invoices: ["ADM001", "Term 1 Tuition", 15000, "2026-04-15", "due", 0, "", ""],
 };
 
 export const s = (v: unknown) => (v === undefined || v === null ? "" : String(v).trim());
@@ -61,7 +63,7 @@ export function downloadAll() {
   const help = XLSX.utils.aoa_to_sheet([
     ["How to use"],
     ["Each sheet matches one table. Keep the header row and sheet names unchanged. Delete the example row."],
-    ["Fill in order: classes → staff → sections → subjects → students → guardians → teacher_assignments → timetable_slots → attendance."],
+    ["Fill in order: classes → staff → sections → subjects → students → guardians → teacher_assignments → timetable_slots → attendance → fee_invoices."], ["Fee status: due / paid / partial / waived."],
     ["Dates: YYYY-MM-DD. Times: HH:MM. weekday: 1=Mon … 6=Sat. Attendance status: present / absent / late / leave."],
   ]);
   XLSX.utils.book_append_sheet(wb, help, "README");
@@ -147,6 +149,13 @@ export async function importTable(key: TableKey, rows: Row[], schoolId: string):
       const payload = rows.map((r, i) => ({ school_id: S, student_id: need(L.studentId(r.admission_number), `attendance row ${i + 2}: student "${s(r.admission_number)}" not found`), date: need(date(r.date), `attendance row ${i + 2}: bad date`), status: s(r.status).toLowerCase(), remarks: s(r.remarks) || null }));
       const { error } = await supabase.from("attendance").upsert(payload, { onConflict: "student_id,date" });
       if (error) throw new Error(`attendance: ${error.message}`);
+      return payload.length;
+    }
+    case "fee_invoices": {
+      const num = (v: unknown) => { const x = parseFloat(s(v)); return isNaN(x) ? null : x; };
+      const payload = rows.map((r, i) => ({ school_id: S, student_id: need(L.studentId(r.admission_number), `fees row ${i + 2}: student "${s(r.admission_number)}" not found`), title: s(r.title), amount: need(num(r.amount), `fees row ${i + 2}: bad amount`), due_date: date(r.due_date), status: s(r.status).toLowerCase() || "due", paid_amount: num(r.paid_amount) ?? 0, paid_on: date(r.paid_on), receipt_no: s(r.receipt_no) || null }));
+      const { error } = await supabase.from("fee_invoices").insert(payload);
+      if (error) throw new Error(`fees: ${error.message}`);
       return payload.length;
     }
   }

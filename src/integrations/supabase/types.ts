@@ -117,6 +117,63 @@ export type Database = {
           },
         ]
       }
+      fee_invoices: {
+        Row: {
+          amount: number
+          created_at: string
+          due_date: string | null
+          id: string
+          paid_amount: number
+          paid_on: string | null
+          receipt_no: string | null
+          school_id: string
+          status: string
+          student_id: string
+          title: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          paid_amount?: number
+          paid_on?: string | null
+          receipt_no?: string | null
+          school_id: string
+          status?: string
+          student_id: string
+          title: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          paid_amount?: number
+          paid_on?: string | null
+          receipt_no?: string | null
+          school_id?: string
+          status?: string
+          student_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_invoices_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_invoices_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guardians: {
         Row: {
           created_at: string
