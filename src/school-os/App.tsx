@@ -2075,6 +2075,101 @@ function RoleLogin({ school, roles, onLogin, onBack }) {
   );
 }
 
+// Single sign-in form: the account's own profile decides the role and school.
+function DirectLogin({ title, roles, onLogin, onBack }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(authService.getRemember());
+  const [resetNote, setResetNote] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const allowed = roles.map((r) => r.id);
+
+  async function handleForgotPassword() {
+    setError(""); setResetNote("");
+    if (!email.trim()) { setError("Enter your email first, then tap Forgot password."); return; }
+    setLoading(true);
+    const { error: e } = await authService.requestPasswordReset(email);
+    setLoading(false);
+    if (e) { setError(e); return; }
+    setResetNote("If that email has an account, a reset link is on its way.");
+  }
+
+  async function handleSubmit() {
+    setError(""); setResetNote("");
+    if (!email.trim() || !password) { setError("Enter your email and password."); return; }
+    setLoading(true);
+    const { profile, error: authError } = await authService.signIn({ email, password, remember });
+    if (authError || !profile) { setLoading(false); setError(authError || "Unable to sign in."); return; }
+    if (!allowed.includes(profile.role)) {
+      await authService.signOut();
+      setLoading(false);
+      setError(profile.role === "superadmin"
+        ? "Super Admins sign in from the Super Admin link on the home screen."
+        : "This account belongs to the other sign-in option. Go back and choose the right one.");
+      return;
+    }
+    setLoading(false);
+    onLogin(profile);
+  }
+
+  const inputCls = "w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3.5 py-2.5 text-[14px] outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50";
+  const demos = roles.filter((r) => DEMO_LOGINS[r.id]);
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-800 flex flex-col items-center justify-center px-6 py-12">
+      <div className="w-full max-w-md">
+        <button onClick={onBack} className="flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-slate-700 text-[13px] mb-6">
+          <ChevronLeft size={15} /> Back to home
+        </button>
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">{title}</h2>
+        <p className="text-slate-500 dark:text-slate-400 text-[13px] mb-5">Sign in with the login your school gave you. You'll go straight to your school.</p>
+        {error && (
+          <div className="mb-4 flex items-center gap-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 px-3.5 py-2.5 text-[13px] text-rose-700 dark:text-rose-300">
+            <AlertCircle size={15} className="shrink-0" /> {error}
+          </div>
+        )}
+        <div className="space-y-3">
+          <div>
+            <label className="text-[13px] font-medium text-slate-600 dark:text-slate-300 mb-1 block">Login ID (email)</label>
+            <input value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSubmit()} placeholder="you@school.edu" autoComplete="username" className={inputCls} />
+          </div>
+          <div>
+            <label className="text-[13px] font-medium text-slate-600 dark:text-slate-300 mb-1 block">Password</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSubmit()} autoComplete="current-password" className={inputCls} />
+          </div>
+          <div className="flex items-center justify-between pt-0.5">
+            <label className="flex items-center gap-2 text-[13px] text-slate-600 dark:text-slate-300 cursor-pointer">
+              <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="h-3.5 w-3.5 rounded border-slate-300 accent-indigo-600" />
+              Remember me
+            </label>
+            <button type="button" onClick={handleForgotPassword} className="text-[13px] font-medium text-indigo-600 hover:text-indigo-700">Forgot password?</button>
+          </div>
+          {resetNote && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[13px] text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">{resetNote}</div>
+          )}
+          <button onClick={handleSubmit} disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-lg py-2.5 font-medium text-[14px] transition-colors mt-2 flex items-center justify-center gap-2">
+            {loading && <Loader2 size={15} className="animate-spin" />}
+            {loading ? "Signing in..." : "Sign in"}
+          </button>
+          {demos.length > 0 && (
+            <details className="mt-3 rounded-lg border border-slate-200 bg-white px-3.5 py-3 text-[12.5px] text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+              <summary className="font-medium text-slate-700 dark:text-slate-200 cursor-pointer">Demo accounts</summary>
+              <div className="mt-2 space-y-1">
+                {demos.map((r) => (
+                  <button key={r.id} type="button" onClick={() => { setEmail(DEMO_LOGINS[r.id].email); setPassword(DEMO_LOGINS[r.id].password); setError(""); }} className="w-full flex justify-between text-left hover:text-indigo-600">
+                    <span>{r.label}</span><span className="font-mono text-[11.5px]">{DEMO_LOGINS[r.id].email}</span>
+                  </button>
+                ))}
+              </div>
+            </details>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ---------------------------------------------------------
    APP SHELL (sidebar + topbar)
 --------------------------------------------------------- */
@@ -6994,23 +7089,16 @@ export default function SchoolOS() {
     }
 
     if (entryMode === "familyLogin" || entryMode === "staffLogin") {
-      if (!school) {
-        return (
-          <SchoolPickerScreen
-            schools={activeSchools}
-            title={entryMode === "familyLogin" ? "Family Sign In" : "School Staff Sign In"}
-            subtitle="Choose your school to continue"
-            onPick={(s) => setSchool(s)}
-            onBack={goHome}
-          />
-        );
-      }
       return (
-        <RoleLogin
-          school={school}
+        <DirectLogin
+          title={entryMode === "familyLogin" ? "Family Sign In" : "School Staff Sign In"}
           roles={entryMode === "familyLogin" ? FAMILY_ROLES : STAFF_ROLES}
-          onBack={() => setSchool(null)}
-          onLogin={handleLogin}
+          onBack={goHome}
+          onLogin={(profile) => {
+            const matched = activeSchools.find((s) => s.id === profile.school_id) || SCHOOLS.find((s) => s.id === profile.school_id);
+            if (matched) setSchool(matched);
+            handleLogin(ROLE_BY_ID[profile.role]);
+          }}
         />
       );
     }
