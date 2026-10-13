@@ -7089,23 +7089,16 @@ export default function SchoolOS() {
     }
 
     if (entryMode === "familyLogin" || entryMode === "staffLogin") {
-      if (!school) {
-        return (
-          <SchoolPickerScreen
-            schools={activeSchools}
-            title={entryMode === "familyLogin" ? "Family Sign In" : "School Staff Sign In"}
-            subtitle="Choose your school to continue"
-            onPick={(s) => setSchool(s)}
-            onBack={goHome}
-          />
-        );
-      }
       return (
-        <RoleLogin
-          school={school}
+        <DirectLogin
+          title={entryMode === "familyLogin" ? "Family Sign In" : "School Staff Sign In"}
           roles={entryMode === "familyLogin" ? FAMILY_ROLES : STAFF_ROLES}
-          onBack={() => setSchool(null)}
-          onLogin={handleLogin}
+          onBack={goHome}
+          onLogin={(profile) => {
+            const matched = activeSchools.find((s) => s.id === profile.school_id) || SCHOOLS.find((s) => s.id === profile.school_id);
+            if (matched) setSchool(matched);
+            handleLogin(ROLE_BY_ID[profile.role]);
+          }}
         />
       );
     }
