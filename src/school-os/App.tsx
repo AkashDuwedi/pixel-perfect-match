@@ -28,6 +28,9 @@ import { LiveChildCard } from "./LiveChildCard";
 import { AccessScreen } from "./AccessScreen";
 import { SchoolControlScreen } from "./SchoolControlScreen";
 import { Power } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { pinLogin } from "@/lib/platform.functions";
+import { PlatformControl } from "./PlatformControl";
 import { canView, filterNav, EXTRA_NAV, AccessDenied, RoleWorkspace } from "./rbac";
 
 /* ---------------------------------------------------------
@@ -1786,6 +1789,24 @@ function SuperAdminLoginScreen({ onBack, onLogin }) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [pin, setPin] = useState("");
+  const pinFn = useServerFn(pinLogin);
+
+  async function handlePin() {
+    setError("");
+    if (pin.length < 4) { setError("Enter your PIN."); return; }
+    setLoading(true);
+    try {
+      const { tokenHash } = await pinFn({ data: { pin } });
+      const { data, error: otpErr } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "magiclink" });
+      if (otpErr || !data.user) throw new Error("Could not sign in.");
+      setLoading(false);
+      onLogin();
+    } catch (e) {
+      setLoading(false);
+      setError((e as Error).message?.includes("Wrong") ? "Wrong PIN." : "PIN sign-in failed.");
+    }
+  }
 
   async function handleSubmit() {
     setError("");
@@ -1856,6 +1877,26 @@ function SuperAdminLoginScreen({ onBack, onLogin }) {
             {loading && <Loader2 size={15} className="animate-spin" />}
             {loading ? "Signing in..." : "Continue"}
           </button>
+          <div className="pt-4 mt-2 border-t border-slate-200 dark:border-slate-700 space-y-2">
+            <p className="text-[12px] text-slate-500 dark:text-slate-400">Or sign in instantly with your private PIN</p>
+            <div className="flex gap-2">
+              <input
+                type="password"
+                inputMode="numeric"
+                value={pin}
+                onChange={(e) => setPin(e.target.value)}
+                placeholder="PIN"
+                className="flex-1 border border-slate-200 dark:border-slate-700 rounded-lg px-3.5 py-2.5 text-[14px] outline-none bg-transparent"
+              />
+              <button
+                onClick={handlePin}
+                disabled={loading}
+                className="border border-indigo-300 text-indigo-600 rounded-lg px-4 text-[14px] font-medium disabled:opacity-60"
+              >
+                Sign in with PIN
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -7316,6 +7357,9 @@ export default function SchoolOS() {
         <TransferRequestsScreen requests={transferRequests} onRespond={respondTransfer} />
       )}
 
+      {role.id === "superadmin" && view === "dashboard" && (
+        <PlatformControl onNavigate={setView} onAddSchool={() => { window.location.href = "/onboarding"; }} />
+      )}
       {role.id === "superadmin" && view === "dashboard" && (
         <SuperAdminDashboard
           schools={schoolsList}
