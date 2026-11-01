@@ -1709,14 +1709,15 @@ function LandingScreen({ onFind, onFamily, onStaff, onSuperAdmin }) {
     { icon: Building2, title: "School Staff Sign In", desc: "For counselors, coordinators, teachers, principals, and school admins.", onClick: onStaff },
   ];
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center px-6 py-16">
+    <div className="min-h-screen bg-gradient-to-b from-primary-muted via-background to-background flex flex-col items-center justify-center px-6 py-16">
       <div className="w-full max-w-md">
-        <div className="flex flex-col items-center text-center mb-9">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center mb-5 shadow-lg shadow-indigo-200">
-            <School className="text-white" size={26} />
+        <div className="flex flex-col items-center text-center mb-10">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-amber-500 flex items-center justify-center mb-5 shadow-xl shadow-primary/25">
+            <School className="text-primary-foreground" size={30} />
           </div>
-          <h1 className="text-3xl font-semibold text-slate-900 dark:text-white tracking-tight">Vedaalay</h1>
-          <p className="text-slate-400 dark:text-slate-500 text-[12px] mt-1">by Akash Duwedi</p>
+          <h1 className="font-display text-4xl font-bold text-foreground tracking-tight">Vedaalay</h1>
+          <p className="text-muted-foreground text-sm mt-2 max-w-xs">The operating system your whole school runs on — admissions to attendance, fees to families.</p>
+          <p className="text-muted-foreground/70 text-xs mt-2">by Akash Duwedi</p>
         </div>
 
         <div className="space-y-3">
@@ -1726,24 +1727,30 @@ function LandingScreen({ onFind, onFamily, onStaff, onSuperAdmin }) {
               <button
                 key={c.title}
                 onClick={c.onClick}
-                className="w-full flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-5 py-4 hover:border-indigo-300 hover:shadow-md transition-all text-left"
+                className="w-full flex items-center gap-3.5 bg-card border border-border rounded-2xl px-5 py-4 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 transition-all duration-200 text-left"
               >
-                <div className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                   <Icon size={19} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="font-semibold text-slate-900 dark:text-white text-[14.5px]">{c.title}</div>
-                  <div className="text-slate-400 dark:text-slate-500 text-[12px] mt-0.5">{c.desc}</div>
+                  <div className="font-semibold text-foreground text-[14.5px]">{c.title}</div>
+                  <div className="text-muted-foreground text-[12px] mt-0.5">{c.desc}</div>
                 </div>
-                <ArrowRight size={16} className="text-slate-300 shrink-0" />
+                <ArrowRight size={16} className="text-muted-foreground shrink-0" />
               </button>
             );
           })}
         </div>
 
-        <div className="text-center mt-10">
-          <button onClick={onSuperAdmin} className="text-slate-300 dark:text-slate-600 hover:text-slate-400 text-[11.5px]">
-            Super Admin
+        <div className="flex items-center gap-3 my-8">
+          <span className="h-px flex-1 bg-border" />
+          <span className="text-[10.5px] uppercase tracking-[0.2em] text-muted-foreground/70">Vedaalay Platform</span>
+          <span className="h-px flex-1 bg-border" />
+        </div>
+
+        <div className="text-center">
+          <button onClick={onSuperAdmin} className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-primary text-[12.5px] transition-colors">
+            <Building2 size={13} /> Super Admin
           </button>
         </div>
       </div>
