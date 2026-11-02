@@ -1839,73 +1839,77 @@ function SuperAdminLoginScreen({ onBack, onLogin }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-800 flex flex-col items-center justify-center px-6 py-12">
-      <div className="w-full max-w-md">
-        <button onClick={onBack} className="flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-slate-700 text-[13px] mb-6">
+    <div className="min-h-screen bg-gradient-to-b from-primary-muted via-background to-background flex flex-col items-center justify-center px-6 py-12">
+      <div className="w-full max-w-md bg-card border border-border rounded-3xl shadow-xl shadow-primary/5 p-7">
+        <button onClick={onBack} className="flex items-center gap-1 text-muted-foreground hover:text-foreground text-[13px] mb-6 -ml-1">
           <ChevronLeft size={15} /> Back to home
         </button>
-        <div className="flex items-center gap-2.5 mb-6">
-          <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-            <Building2 size={17} />
+
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-amber-500 flex items-center justify-center shadow-md shadow-primary/20">
+            <Building2 className="text-primary-foreground" size={18} />
           </div>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Super Admin login</h2>
+          <div>
+            <h2 className="font-display text-lg font-semibold text-foreground">Super Admin login</h2>
+            <p className="text-xs text-muted-foreground">Platform control centre access</p>
+          </div>
         </div>
         {error && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 px-3.5 py-2.5 text-[13px] text-rose-700 dark:text-rose-300">
+          <div className="mb-4 flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/30 px-3.5 py-2.5 text-[13px] text-destructive">
             <AlertCircle size={15} className="shrink-0" /> {error}
           </div>
         )}
         <div className="space-y-3">
           <div>
-            <label className="text-[13px] font-medium text-slate-600 dark:text-slate-300 mb-1 block">Email</label>
+            <label className="text-[13px] font-medium text-muted-foreground mb-1 block">Email</label>
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
               placeholder="you@vedaalay.com"
-              className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3.5 py-2.5 text-[14px] outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50"
+              className="w-full border border-border bg-background rounded-lg px-3.5 py-2.5 text-[14px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-colors"
             />
           </div>
           <div>
-            <label className="text-[13px] font-medium text-slate-600 dark:text-slate-300 mb-1 block">Password</label>
+            <label className="text-[13px] font-medium text-muted-foreground mb-1 block">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-              className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3.5 py-2.5 text-[14px] outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50"
+              className="w-full border border-border bg-background rounded-lg px-3.5 py-2.5 text-[14px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-colors"
             />
           </div>
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-lg py-2.5 font-medium text-[14px] transition-colors mt-2 flex items-center justify-center gap-2"
+            className="w-full bg-primary hover:bg-primary/90 disabled:opacity-60 text-primary-foreground rounded-lg py-2.5 font-medium text-[14px] transition-all mt-2 flex items-center justify-center gap-2 active:scale-[0.99]"
           >
             {loading && <Loader2 size={15} className="animate-spin" />}
             {loading ? "Signing in..." : "Continue"}
           </button>
-          <div className="pt-4 mt-2 border-t border-slate-200 dark:border-slate-700 space-y-2">
-            <p className="text-[12px] text-slate-500 dark:text-slate-400">Or sign in instantly with your private PIN</p>
+          <div className="pt-4 mt-2 border-t border-border space-y-2">
+            <p className="text-[12px] text-muted-foreground">Or sign in instantly with your private PIN</p>
             <div className="flex gap-2">
               <input
                 type="password"
                 inputMode="numeric"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handlePin()}
                 placeholder="PIN"
-                className="flex-1 border border-slate-200 dark:border-slate-700 rounded-lg px-3.5 py-2.5 text-[14px] outline-none bg-transparent"
+                className="flex-1 border border-border bg-background rounded-lg px-3.5 py-2.5 text-[14px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-colors"
               />
               <button
                 onClick={handlePin}
                 disabled={loading}
-                className="border border-indigo-300 text-indigo-600 rounded-lg px-4 text-[14px] font-medium disabled:opacity-60"
+                className="border border-primary/40 text-primary hover:bg-primary/10 rounded-lg px-4 text-[14px] font-medium disabled:opacity-60 transition-colors"
               >
                 Sign in with PIN
               </button>
             </div>
           </div>
         </div>
-      </div>
     </div>
   );
 }
