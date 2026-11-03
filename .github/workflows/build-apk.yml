@@ -14,10 +14,16 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: |
-          npm install --no-save @capacitor/core@^8.5.2 @capacitor/cli@^8.5.2 @capacitor/android@^8.5.2
-          mkdir -p dist
+          npm install --no-save @capacitor/core@^8.5.2 @capacitor/cli@^8.5.2 @capacitor/android@^8.5.2 @capacitor/assets
+          mkdir -p dist assets
           echo '<!doctype html><title>Vedaalay</title>' > dist/index.html
+          cp app-icon.png assets/icon-only.png
+          cp app-icon.png assets/icon-foreground.png
+          cp app-icon.png assets/icon-background.png
+          cp app-splash.png assets/splash.png
+          cp app-splash.png assets/splash-dark.png
           npx cap sync android
+          npx capacitor-assets generate --android
       - run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
