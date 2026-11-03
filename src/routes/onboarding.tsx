@@ -142,6 +142,8 @@ function DataImport({ schoolId }: { schoolId: string }) {
   const [data, setData] = useState<Partial<Record<TableKey, Record<string, unknown>[]>>>({});
   const [log, setLog] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [dlBusy, setDlBusy] = useState(false);
+  const [dlErr, setDlErr] = useState("");
   const errors = TEMPLATES.flatMap((t) => (data[t.key] ? validate(t.key, data[t.key]!) : []));
   const loaded = TEMPLATES.filter((t) => data[t.key]?.length);
 
