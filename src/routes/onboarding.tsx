@@ -165,7 +165,8 @@ function DataImport({ schoolId }: { schoolId: string }) {
       <h2 className="font-semibold mb-1">Step 3 — Import school data from Excel</h2>
       <p className="text-xs text-muted-foreground mb-3">Every template matches a table in the system. Download the full workbook (one sheet per table), fill it, and upload it — all tables are filled in the right order. Or use single-table templates below.</p>
       <div className="flex flex-wrap gap-2 items-center mb-4">
-        <button className={btn} onClick={downloadAll}>Download full workbook</button>
+        <button className={btn} disabled={dlBusy} onClick={async () => { setDlBusy(true); try { await downloadAll(); } catch (e) { setDlErr(`Download failed: ${(e as Error).message}`); } setDlBusy(false); }}>{dlBusy ? "Preparing…" : "Download full workbook"}</button>
+        {dlErr && <span className="text-xs text-destructive">{dlErr}</span>}
         <label className={btn2 + " cursor-pointer"}>Upload filled workbook
           <input type="file" hidden accept=".xlsx,.xls" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ""; }} />
         </label>
