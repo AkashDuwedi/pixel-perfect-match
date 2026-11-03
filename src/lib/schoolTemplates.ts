@@ -52,13 +52,33 @@ function sheetFor(t: (typeof TEMPLATES)[number]) {
   ws["!cols"] = t.columns.map((c) => ({ wch: Math.max(14, c.length + 2) }));
   return ws;
 }
-export function downloadOne(key: TableKey) {
+/** Saves a workbook: uses the share sheet on phones (works where anchor downloads are blocked), otherwise a normal download. */
+async function deliverWorkbook(wb: XLSX.WorkBook, filename: string) {
+  const bytes = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const file = new File([blob], filename, { type: blob.type });
+  const touch = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
+  if (touch && typeof navigator !== "undefined" && navigator.canShare?.({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: filename }); return; }
+    catch (e) { if ((e as DOMException)?.name === "AbortError") return; }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30_000);
+}
+
+export async function downloadOne(key: TableKey) {
   const t = TEMPLATES.find((x) => x.key === key)!;
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, sheetFor(t), t.key);
-  XLSX.writeFile(wb, `${t.key}-template.xlsx`);
+  await deliverWorkbook(wb, `${t.key}-template.xlsx`);
 }
-export function downloadAll() {
+export async function downloadAll() {
   const wb = XLSX.utils.book_new();
   const help = XLSX.utils.aoa_to_sheet([
     ["How to use"],
@@ -68,7 +88,7 @@ export function downloadAll() {
   ]);
   XLSX.utils.book_append_sheet(wb, help, "README");
   TEMPLATES.forEach((t) => XLSX.utils.book_append_sheet(wb, sheetFor(t), t.key));
-  XLSX.writeFile(wb, "school-data-template.xlsx");
+  await deliverWorkbook(wb, "school-data-template.xlsx");
 }
 
 /** Reads a workbook; returns rows per table (sheet name or single-sheet fallback). */
