@@ -21,6 +21,7 @@ export type AccessPerson = {
   name: string;
   subtitle: string | null;
   email: string | null;
+  phone: string | null;
   profileId: string | null;
 };
 
@@ -41,11 +42,11 @@ export const getAccessOverview = createServerFn({ method: "GET" })
     const [staff, guardians, students] = await Promise.all([
       context.supabase
         .from("staff")
-        .select("id, school_id, full_name, designation, email, profile_id")
+        .select("id, school_id, full_name, designation, email, phone, profile_id")
         .order("full_name"),
       context.supabase
         .from("guardians")
-        .select("id, school_id, full_name, relation, email, profile_id")
+        .select("id, school_id, full_name, relation, email, phone, profile_id")
         .order("full_name"),
       context.supabase
         .from("students")
@@ -65,6 +66,7 @@ export const getAccessOverview = createServerFn({ method: "GET" })
         name: s.full_name as string,
         subtitle: (s.designation as string) || "Staff",
         email: (s.email as string) || null,
+        phone: (s.phone as string) || null,
         profileId: (s.profile_id as string) || null,
       })),
       guardians: (guardians.data ?? []).map((g: Record<string, unknown>) => ({
@@ -73,6 +75,7 @@ export const getAccessOverview = createServerFn({ method: "GET" })
         name: g.full_name as string,
         subtitle: (g.relation as string) || "Guardian",
         email: (g.email as string) || null,
+        phone: (g.phone as string) || null,
         profileId: (g.profile_id as string) || null,
       })),
       students: (students.data ?? []).map((s: Record<string, unknown>) => {
@@ -86,6 +89,7 @@ export const getAccessOverview = createServerFn({ method: "GET" })
             .filter(Boolean)
             .join(" · ") || "Student",
           email: null,
+          phone: null,
           profileId: (s.profile_id as string) || null,
         };
       }),
@@ -101,6 +105,7 @@ export const inviteLogin = createServerFn({ method: "POST" })
         id: z.string().uuid(),
         email: z.string().email().max(255),
         role: z.enum(STAFF_INVITE_ROLES).optional(),
+        delivery: z.enum(["email", "whatsapp"]).default("email"),
       })
       .parse(d),
   )
@@ -167,25 +172,82 @@ export const inviteLogin = createServerFn({ method: "POST" })
     const { getRequestHeader } = await import("@tanstack/react-start/server");
     const origin = getRequestHeader("origin") || undefined;
 
-    const { data: invited, error: invErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-      data.email,
-      {
-        data: { full_name: fullName, role: appRole, school_id: schoolId },
-        ...(origin ? { redirectTo: `${origin}/reset-password` } : {}),
-      },
-    );
-    if (invErr) throw new Error(invErr.message);
-    if (!invited.user) throw new Error("Invite could not be created.");
+    const userMetadata = { full_name: fullName, role: appRole, school_id: schoolId };
+    let userId: string;
+    let actionLink: string | null = null;
+
+    if (data.delivery === "whatsapp") {
+      const { data: invited, error: inviteError } = await supabaseAdmin.auth.admin.generateLink({
+        type: "invite",
+        email: data.email,
+        options: {
+          data: userMetadata,
+          ...(origin ? { redirectTo: `${origin}/reset-password` } : {}),
+        },
+      });
+      if (inviteError) throw new Error(inviteError.message);
+      if (!invited.user || !invited.properties.action_link)
+        throw new Error("Secure invitation link could not be created.");
+      userId = invited.user.id;
+      actionLink = invited.properties.action_link;
+    } else {
+      const { data: invited, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+        data.email,
+        {
+          data: userMetadata,
+          ...(origin ? { redirectTo: `${origin}/reset-password` } : {}),
+        },
+      );
+      if (inviteError) throw new Error(inviteError.message);
+      if (!invited.user) throw new Error("Invite could not be created.");
+      userId = invited.user.id;
+    }
+
+    const { error: profileError } = await supabaseAdmin.from("profiles").upsert({
+      id: userId,
+      email: data.email,
+      full_name: fullName,
+      role: appRole,
+      school_id: schoolId,
+    });
+    if (profileError) throw new Error(profileError.message);
 
     // Link the new profile to the staff/guardian/student row.
     const table = data.kind === "staff" ? "staff" : data.kind === "guardian" ? "guardians" : "students";
     const { error: linkErr } = await supabaseAdmin
       .from(table)
-      .update({ profile_id: invited.user.id })
+      .update({ profile_id: userId })
       .eq("id", data.id);
     if (linkErr) throw new Error(linkErr.message);
 
-    return { userId: invited.user.id, role: appRole };
+    return { userId, role: appRole, email: data.email, actionLink };
+  });
+
+// Generate a one-time password setup link for an existing school login.
+export const createWhatsAppPasswordLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ profileId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: myRole } = await context.supabase.rpc("get_my_role");
+    if (myRole !== "admin" && myRole !== "superadmin")
+      throw new Error("Only school admins can share login links.");
+    const { data: profile, error } = await context.supabase
+      .from("profiles")
+      .select("id,email,full_name,role,school_id")
+      .eq("id", data.profileId)
+      .maybeSingle();
+    if (error || !profile?.email) throw new Error("Login not found in your school.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { getRequestHeader } = await import("@tanstack/react-start/server");
+    const origin = getRequestHeader("origin") || undefined;
+    const { data: link, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: "recovery",
+      email: profile.email,
+      options: origin ? { redirectTo: `${origin}/reset-password` } : undefined,
+    });
+    if (linkError) throw new Error(linkError.message);
+    if (!link.properties.action_link) throw new Error("Secure password setup link could not be created.");
+    return { email: profile.email, name: profile.full_name ?? "", actionLink: link.properties.action_link };
   });
 
 // Re-send a set-password email to someone who already has a login.
